@@ -291,6 +291,31 @@ export const api = {
 
   getPlans: (product?: string) =>
     request<PlanInfo[]>(`/billing/plans${product ? `?product=${product}` : ''}`),
+
+  aiStatus: () =>
+    request<{ enabled: boolean; model?: string }>('/ai/status'),
+
+  aiChat: (data: {
+    messages: { role: 'user' | 'assistant'; content: string }[];
+    locale?: string;
+    orgId?: string;
+    pageContext?: string;
+  }) =>
+    request<{ reply: string }>('/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  aiGenerate: (data: {
+    task: string;
+    context: Record<string, unknown>;
+    locale?: string;
+    orgId?: string;
+  }) =>
+    request<{ result: Record<string, string>; task: string }>('/ai/generate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 
 export interface User {

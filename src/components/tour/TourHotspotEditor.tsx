@@ -6,6 +6,7 @@ import { TOUR_HOTSPOT_TYPES, TOUR_MARKER_ICONS, type TourHotspotType } from '../
 import { TourPanoramaPicker } from '../TourPanoramaPicker';
 import { api } from '../../lib/api';
 import { useI18n } from '../../lib/i18n-context';
+import { AiGenerateButton } from '../ai/AiGenerateButton';
 
 export interface HotspotFormState {
   type: TourHotspotType;
@@ -154,6 +155,25 @@ export function TourHotspotEditor({
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">
+        <div className="sm:col-span-2 flex items-center justify-between gap-2">
+          <span className="text-sm font-medium text-[#334155]">{t('tours.hotspotContent')}</span>
+          <AiGenerateButton
+            task="hotspot"
+            context={{
+              orgId,
+              sceneName: scene.name,
+              hotspotType: form.type,
+              existingTitle: form.title,
+              existingText: form.text,
+            }}
+            onResult={(result) => set({
+              title: result.title || form.title,
+              text: result.text || form.text,
+              body: result.body || form.body,
+            })}
+            className="!py-1 !px-2.5 text-xs"
+          />
+        </div>
         <div>
           <label className="label">{t('tours.hotspotTitle')}</label>
           <input value={form.title} onChange={(e) => set({ title: e.target.value })} className="input" placeholder={t('tours.hotspotTitlePh')} />

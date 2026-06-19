@@ -348,6 +348,7 @@ export interface TranslationSchema {
     hotspotType_link: string;
     hotspotType_banner: string;
     hotspotTitle: string;
+    hotspotContent: string;
     hotspotTitlePh: string;
     hotspotBody: string;
     hotspotBodyPh: string;
@@ -502,5 +503,21 @@ export interface TranslationSchema {
     planNone: string;
     activeShort: string;
     noneShort: string;
+  };
+  ai: {
+    assistant: string;
+    assistantDesc: string;
+    welcome: string;
+    suggest1: string;
+    suggest2: string;
+    suggest3: string;
+    placeholder: string;
+    send: string;
+    thinking: string;
+    generate: string;
+    generating: string;
+    generated: string;
+    improve: string;
+    error: string;
   };
 }

@@ -9,6 +9,7 @@ import modelRoutes from './routes/models.js';
 import experienceRoutes from './routes/experiences.js';
 import tourRoutes from './routes/tours.js';
 import billingRoutes, { stripeWebhookHandler } from './routes/billing.js';
+import aiRoutes from './routes/ai.js';
 import { validateStartupEnv } from './lib/validate.js';
 import { createCorsMiddleware } from './middleware/cors-config.js';
 import { connectDatabase, disconnectDatabase, pingDatabase } from './lib/prisma.js';
@@ -117,6 +118,7 @@ app.use('/api/models', modelRoutes);
 app.use('/api/experiences', experienceRoutes);
 app.use('/api/tours', tourRoutes);
 app.use('/api/billing', billingRoutes);
+app.use('/api/ai', aiRoutes);
 
 app.get('/api/health', async (_req, res) => {
   const dbOk = await pingDatabase();
@@ -130,6 +132,7 @@ app.get('/api/health', async (_req, res) => {
     db: dbOk ? 'connected' : 'disconnected',
     uploads: uploadsOk ? 'writable' : 'readonly',
     uptime: Math.floor(process.uptime()),
+    ai: process.env.OPENAI_API_KEY ? 'enabled' : 'disabled',
   };
 
   res.status(healthy ? 200 : 503).json(payload);

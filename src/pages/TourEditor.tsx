@@ -8,6 +8,7 @@ import { parseTourSettings, type TourSettings } from '../../shared/tour-types';
 import { ArrowLeft, ExternalLink, Settings, Layers } from 'lucide-react';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { TourStudio } from '../components/tour/TourStudio';
+import { AiGenerateButton } from '../components/ai/AiGenerateButton';
 
 type Tab = 'settings' | 'scenes';
 
@@ -149,7 +150,22 @@ export function TourEditor() {
             <input value={settingsForm.name} onChange={(e) => setSettingsForm({ ...settingsForm, name: e.target.value })} required className="input" />
           </div>
           <div>
-            <label className="label">{t('tours.description')}</label>
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <label className="label mb-0">{t('tours.description')}</label>
+              <AiGenerateButton
+                task="tour_description"
+                context={{
+                  orgId: currentOrg.id,
+                  tourName: settingsForm.name || tour.name,
+                  sceneNames: tour.scenes.map((s) => s.name),
+                }}
+                onResult={(result) => setSettingsForm({
+                  ...settingsForm,
+                  description: result.description || settingsForm.description,
+                })}
+                className="!py-1 !px-2.5 text-xs"
+              />
+            </div>
             <textarea value={settingsForm.description} onChange={(e) => setSettingsForm({ ...settingsForm, description: e.target.value })} className="input min-h-[88px]" rows={3} />
           </div>
           <label className="flex items-center gap-2 text-sm">

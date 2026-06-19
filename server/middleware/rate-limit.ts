@@ -59,3 +59,9 @@ export const authRateLimit = rateLimit({ windowMs: 15 * 60_000, max: 30, keyPref
 export const uploadRateLimit = rateLimit({ windowMs: 60 * 60_000, max: 40, keyPrefix: 'upload' });
 export const publicArRateLimit = rateLimit({ windowMs: 60_000, max: 120, keyPrefix: 'public-ar' });
 export const globalApiRateLimit = rateLimit({ windowMs: 60_000, max: 300, keyPrefix: 'api' });
+export const aiRateLimit = rateLimit({
+  windowMs: 15 * 60_000,
+  max: 40,
+  keyPrefix: 'ai',
+  message: 'AI so\'rovlari limiti. Biroz kuting.',
+});
