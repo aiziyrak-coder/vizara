@@ -8,11 +8,12 @@ import {
   Map, Navigation, Hotel, Link2,
 } from 'lucide-react';
 import { PricingCards } from '../components/PricingCards';
-import { Logo, LogoLink } from '../components/Logo';
+import { LogoLink } from '../components/Logo';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { LandingShell } from '../components/landing/LandingShell';
 import { RevealOnScroll } from '../components/landing/RevealOnScroll';
-import { NeonTitle } from '../components/landing/NeonTitle';
+import { HeroTitle } from '../components/landing/HeroTitle';
+import { HeroVisual } from '../components/landing/HeroVisual';
 import { TiltGlowCard } from '../components/landing/TiltGlowCard';
 import { MarqueeBand } from '../components/landing/MarqueeBand';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
@@ -27,7 +28,7 @@ function PhoneMockup({ brand, subtitle }: { brand: string; subtitle: string }) {
       transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
     >
       <motion.div
-        className="landing-phone landing-phone-fx"
+        className="landing-phone landing-phone--light"
         aria-hidden="true"
         initial={{ opacity: 0, rotateY: -18, scale: 0.92 }}
         whileInView={{ opacity: 1, rotateY: 0, scale: 1 }}
@@ -147,7 +148,7 @@ export function Landing() {
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
     if (!el) return;
-    const top = el.getBoundingClientRect().top + window.scrollY - 72;
+    const top = el.getBoundingClientRect().top + window.scrollY - 80;
     window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
     window.history.replaceState(null, '', id === 'hero' ? '/' : `/#${id}`);
   };
@@ -157,81 +158,73 @@ export function Landing() {
     'Mobile First', 'VizaraAR', 'VizaraTour', 'Real-time', 'Holographic',
   ];
 
+  const platformParts = t('landing.platformTitle').split(/\s*[—–-]\s*/);
+  const heroLine1 = platformParts[0]?.trim() || 'Vizara';
+  const heroHighlight = platformParts[1]?.trim() || 'WebAR & Virtual Tour';
+
   return (
     <LandingShell user={user}>
-      <section id="hero" className="landing-hero landing-section landing-hero-fx scroll-mt-20">
-        <div className="landing-hero-rays" aria-hidden />
-        <div className="container">
-          <div className="landing-hero-grid">
-            <RevealOnScroll variant="blur" className="landing-hero-copy">
-              <motion.div
-                className="flex justify-center lg:justify-start mb-6"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-              >
-                <Logo size="xl" showTagline stacked />
-              </motion.div>
-              <motion.div
-                className="inline-flex items-center gap-2 landing-hero-badge mb-5"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
-              >
-                <span className="landing-hero-badge-dot" />
-                <span className="leading-snug">{t('landing.badge')}</span>
-              </motion.div>
-              <NeonTitle text={t('landing.platformTitle')} className="landing-hero-title font-bold tracking-tight mb-4" delay={0.15} />
-              <motion.p
-                className="text-[15px] sm:text-lg text-secondary leading-relaxed max-w-xl landing-hero-desc"
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.55, duration: 0.6 }}
-              >
-                {t('landing.platformDesc')}
-              </motion.p>
+      <section id="hero" className="landing-hero landing-hero--light scroll-mt-24">
+        <div className="container landing-hero-inner">
+          <motion.div
+            className="landing-hero-badge landing-hero-badge--light"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            {t('landing.badge')}
+          </motion.div>
 
-              <motion.div
-                className="flex flex-col sm:flex-row gap-3 mt-8"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7, duration: 0.5 }}
-              >
-                <Link to={user ? '/dashboard' : '/register'} className="btn btn-primary w-full sm:w-auto text-[15px] px-7 landing-hero-cta landing-btn-neon">
-                  {user ? t('landing.ctaDashboard') : t('landing.ctaStart')}
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-                <button type="button" onClick={() => scrollTo('pricing')} className="btn btn-secondary w-full sm:w-auto text-[15px] landing-btn-glass">
-                  {t('landing.ctaViewPlans')}
-                </button>
-              </motion.div>
-            </RevealOnScroll>
+          <HeroTitle line1={heroLine1} highlight={heroHighlight} />
 
-            <RevealOnScroll delay={0.12} variant="scale" className="landing-hero-cards">
-              <div className="grid gap-4">
-                <TiltGlowCard glow="ar" onClick={() => scrollTo('vizara-ar')} className="product-card product-card-ar text-left">
-                  <div className="product-card-icon"><Box className="w-6 h-6" /></div>
-                  <p className="product-card-name">{t('landing.productArName')}</p>
-                  <p className="product-card-tag">{t('landing.productArTag')}</p>
-                  <p className="product-card-desc">{t('landing.productArDesc')}</p>
-                  <span className="product-card-cta">{t('landing.productArCta')} <ArrowRight className="w-4 h-4" /></span>
-                </TiltGlowCard>
-                <TiltGlowCard glow="tour" onClick={() => scrollTo('vizara-tour')} className="product-card product-card-tour text-left">
-                  <div className="product-card-icon product-card-icon-tour"><Map className="w-6 h-6" /></div>
-                  <p className="product-card-name">{t('landing.productTourName')}</p>
-                  <p className="product-card-tag">{t('landing.productTourTag')}</p>
-                  <p className="product-card-desc">{t('landing.productTourDesc')}</p>
-                  <span className="product-card-cta">{t('landing.productTourCta')} <ArrowRight className="w-4 h-4" /></span>
-                </TiltGlowCard>
-              </div>
-            </RevealOnScroll>
+          <motion.p
+            className="landing-hero-sub"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.55 }}
+          >
+            {t('landing.platformDesc')}
+          </motion.p>
+
+          <motion.div
+            className="landing-hero-actions"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35, duration: 0.5 }}
+          >
+            <Link to={user ? '/dashboard' : '/register'} className="btn btn-primary landing-hero-btn-primary">
+              {user ? t('landing.ctaDashboard') : t('landing.ctaStart')}
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <button type="button" onClick={() => scrollTo('pricing')} className="btn btn-secondary landing-hero-btn-secondary">
+              {t('landing.ctaViewPlans')}
+            </button>
+          </motion.div>
+
+          <HeroVisual />
+
+          <div className="landing-hero-products">
+            <TiltGlowCard glow="ar" onClick={() => scrollTo('vizara-ar')} className="product-card product-card-ar text-left">
+              <div className="product-card-icon"><Box className="w-6 h-6" /></div>
+              <p className="product-card-name">{t('landing.productArName')}</p>
+              <p className="product-card-tag">{t('landing.productArTag')}</p>
+              <p className="product-card-desc">{t('landing.productArDesc')}</p>
+              <span className="product-card-cta">{t('landing.productArCta')} <ArrowRight className="w-4 h-4" /></span>
+            </TiltGlowCard>
+            <TiltGlowCard glow="tour" onClick={() => scrollTo('vizara-tour')} className="product-card product-card-tour text-left">
+              <div className="product-card-icon product-card-icon-tour"><Map className="w-6 h-6" /></div>
+              <p className="product-card-name">{t('landing.productTourName')}</p>
+              <p className="product-card-tag">{t('landing.productTourTag')}</p>
+              <p className="product-card-desc">{t('landing.productTourDesc')}</p>
+              <span className="product-card-cta">{t('landing.productTourCta')} <ArrowRight className="w-4 h-4" /></span>
+            </TiltGlowCard>
           </div>
         </div>
         <MarqueeBand items={marqueeItems} />
       </section>
 
       <section id="vizara-ar" className="scroll-mt-20 landing-section-anchor">
-        <section className="landing-section glass-section-fx">
+        <section className="landing-section landing-band">
           <div className="container">
             <div className="grid lg:grid-cols-2 gap-10 items-center">
               <RevealOnScroll variant="left">
@@ -257,7 +250,7 @@ export function Landing() {
           </div>
         </section>
 
-        <section className="glass-section-fx landing-stats-band">
+        <section className="glass-section landing-band">
           <div className="container py-6 sm:py-8">
             <div className="grid grid-cols-3 gap-2 sm:gap-6">
               {stats.map(({ value, label }, i) => (
@@ -292,7 +285,7 @@ export function Landing() {
           </div>
         </section>
 
-        <section className="landing-section glass-section-fx">
+        <section className="landing-section landing-band">
           <div className="container max-w-3xl">
             <RevealOnScroll>
               <SectionHeader eyebrow={t('landing.whyEyebrow')} title={t('landing.whyTitle')} description={t('landing.whyDesc')} align="center" className="mx-auto text-center" />
@@ -335,7 +328,7 @@ export function Landing() {
           </div>
         </section>
 
-        <section className="landing-section glass-section-fx">
+        <section className="landing-section landing-band">
           <div className="container">
             <RevealOnScroll>
               <SectionHeader eyebrow={t('landing.useEyebrow')} title={t('landing.useTitle')} description={t('landing.useDesc')} />
@@ -355,7 +348,7 @@ export function Landing() {
         </section>
       </section>
 
-      <section id="vizara-tour" className="landing-section scroll-mt-20 glass-section-fx landing-tour-section">
+      <section id="vizara-tour" className="landing-section scroll-mt-24 landing-band landing-tour-section">
         <div className="container">
           <RevealOnScroll>
             <SectionHeader eyebrow={t('landing.tourSectionEyebrow')} title={t('landing.tourSectionTitle')} description={t('landing.tourSectionDesc')} />
@@ -413,7 +406,7 @@ export function Landing() {
         </div>
       </section>
 
-      <section id="faq" className="landing-section glass-section-fx scroll-mt-20">
+      <section id="faq" className="landing-section landing-band scroll-mt-24">
         <div className="container max-w-2xl">
           <RevealOnScroll>
             <SectionHeader eyebrow={t('landing.faqEyebrow')} title={t('landing.faqTitle')} />
@@ -444,16 +437,15 @@ export function Landing() {
       <section className="landing-section pb-10">
         <div className="container">
           <RevealOnScroll>
-            <div className="landing-cta landing-cta-animated landing-cta-fx">
-              <div className="landing-cta-particles" aria-hidden />
+            <div className="landing-cta landing-cta--light">
               <div className="relative z-10">
-                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-3 tracking-tight">{t('landing.ctaTitle')}</h2>
-                <p className="text-sm sm:text-base text-white/80 mb-6 sm:mb-8 max-w-md mx-auto px-2">{t('landing.ctaDesc')}</p>
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 tracking-tight text-[#003B73]">{t('landing.ctaTitle')}</h2>
+                <p className="text-sm sm:text-base text-secondary mb-6 sm:mb-8 max-w-md mx-auto px-2">{t('landing.ctaDesc')}</p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Link to={user ? '/dashboard' : '/register'} className="btn bg-white text-[var(--brand)] hover:bg-white/95 w-full sm:w-auto text-[15px] px-8 shadow-lg landing-btn-neon">
+                  <Link to={user ? '/dashboard' : '/register'} className="btn btn-primary w-full sm:w-auto text-[15px] px-8">
                     {user ? t('landing.ctaDashboard') : t('landing.ctaStartNow')}
                   </Link>
-                  <button type="button" onClick={() => scrollTo('pricing')} className="btn btn-glass w-full sm:w-auto text-[15px]">
+                  <button type="button" onClick={() => scrollTo('pricing')} className="btn btn-secondary w-full sm:w-auto text-[15px]">
                     {t('landing.ctaViewPlans')}
                   </button>
                 </div>
@@ -463,7 +455,7 @@ export function Landing() {
         </div>
       </section>
 
-      <footer className="glass-section-fx safe-bottom landing-footer">
+      <footer className="landing-footer safe-bottom">
         <div className="container py-10">
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             <div>
@@ -490,7 +482,7 @@ export function Landing() {
               <p className="text-sm font-semibold mb-3">{t('landing.footerContact')}</p>
               <p className="text-sm text-secondary">vizara.app</p>
               <p className="text-sm text-secondary mt-1">WebAR · 3D · QR · 360°</p>
-              <div className="mt-4">
+              <div className="mt-4 landing-footer-lang">
                 <LanguageSwitcher />
               </div>
             </div>
