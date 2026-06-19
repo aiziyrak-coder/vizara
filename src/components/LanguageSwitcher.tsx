@@ -3,11 +3,33 @@ import { useI18n, LOCALES, type Locale } from '../lib/i18n-context';
 
 interface LanguageSwitcherProps {
   compact?: boolean;
+  iconOnly?: boolean;
   className?: string;
 }
 
-export function LanguageSwitcher({ compact = false, className = '' }: LanguageSwitcherProps) {
+export function LanguageSwitcher({ compact = false, iconOnly = false, className = '' }: LanguageSwitcherProps) {
   const { locale, setLocale, localeLabel } = useI18n();
+
+  if (iconOnly) {
+    return (
+      <div className={`landing-lang-icon ${className}`}>
+        <label className="sr-only">Language</label>
+        <Globe className="w-4 h-4 landing-lang-icon-globe" aria-hidden="true" />
+        <select
+          value={locale}
+          onChange={(e) => setLocale(e.target.value as Locale)}
+          className="landing-lang-icon-select"
+          aria-label="Til"
+        >
+          {LOCALES.map((loc) => (
+            <option key={loc} value={loc}>
+              {localeLabel(loc)}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }
 
   return (
     <div className={`relative ${className}`}>

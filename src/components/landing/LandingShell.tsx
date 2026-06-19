@@ -73,7 +73,9 @@ export function LandingShell({ children, user }: LandingShellProps) {
 
       <header className={`landing-nav safe-top ${scrolled ? 'landing-nav--scrolled' : ''}`}>
         <div className="landing-nav-inner container">
-          <LogoLink size="sm" />
+          <div className="landing-nav-brand">
+            <LogoLink size="sm" />
+          </div>
 
           <nav className="landing-nav-links" aria-label={t('landing.navSections')}>
             {navItems.map(({ id, label }) => (
@@ -89,23 +91,28 @@ export function LandingShell({ children, user }: LandingShellProps) {
           </nav>
 
           <div className="landing-nav-actions">
-            <LanguageSwitcher compact className="hidden sm:flex" />
+            <LanguageSwitcher iconOnly className="landing-nav-lang hidden lg:block" />
             {user ? (
-              <Link to="/dashboard" className="btn btn-primary landing-nav-cta hidden sm:inline-flex">
-                <LayoutDashboard className="w-4 h-4" />
-                {t('nav.dashboard')}
-              </Link>
+              <>
+                <Link to="/dashboard" className="btn btn-primary landing-nav-cta landing-nav-cta--icon hidden lg:inline-flex xl:hidden" title={t('nav.dashboard')}>
+                  <LayoutDashboard className="w-4 h-4" />
+                </Link>
+                <Link to="/dashboard" className="btn btn-primary landing-nav-cta hidden xl:inline-flex">
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>{t('nav.dashboard')}</span>
+                </Link>
+              </>
             ) : (
               <>
-                <Link to="/login" className="landing-nav-ghost hidden sm:inline-flex">{t('nav.login')}</Link>
-                <Link to="/register" className="btn btn-primary landing-nav-cta hidden sm:inline-flex">
+                <Link to="/login" className="landing-nav-ghost hidden xl:inline-flex">{t('nav.login')}</Link>
+                <Link to="/register" className="btn btn-primary landing-nav-cta hidden lg:inline-flex">
                   {t('nav.start')}
                 </Link>
               </>
             )}
             <button
               type="button"
-              className="landing-nav-menu sm:hidden"
+              className="landing-nav-menu lg:hidden"
               onClick={() => setMenuOpen(true)}
               aria-label={t('common.menu')}
               aria-expanded={menuOpen}
