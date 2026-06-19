@@ -48,9 +48,11 @@ def run(client: paramiko.SSHClient, cmd: str, timeout=600) -> str:
     err = stderr.read().decode()
     code = stdout.channel.recv_exit_status()
     if out:
-        print(out[-4000:] if len(out) > 4000 else out)
+        safe = out[-4000:] if len(out) > 4000 else out
+        print(safe.encode("utf-8", errors="replace").decode("utf-8", errors="replace"))
     if err:
-        print("STDERR:", err[-2000:] if len(err) > 2000 else err)
+        safe_err = err[-2000:] if len(err) > 2000 else err
+        print("STDERR:", safe_err.encode("utf-8", errors="replace").decode("utf-8", errors="replace"))
     if code != 0:
         raise RuntimeError(f"Command failed ({code}): {cmd}")
     return out
