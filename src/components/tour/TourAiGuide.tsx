@@ -1,9 +1,6 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
 import { Sparkles, X, Send, Loader2 } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
-import { useAuth } from '../../lib/auth-context';
 import { useI18n } from '../../lib/i18n-context';
-import { useToast } from '../../lib/toast-context';
 import { api } from '../../lib/api';
 
 interface ChatMessage {
@@ -11,11 +8,22 @@ interface ChatMessage {
   content: string;
 }
 
-export function AiAssistant() {
-  const { currentOrg } = useAuth();
+interface TourAiGuideProps {
+  orgSlug: string;
+  tourSlug: string;
+  tourName: string;
+  currentSceneId: string;
+  brandColor?: string;
+}
+
+export function TourAiGuide({
+  orgSlug,
+  tourSlug,
+  tourName,
+  currentSceneId,
+  brandColor = '#6366f1',
+}: TourAiGuideProps) {
   const { t, locale } = useI18n();
-  const { showToast } = useToast();
-  const location = useLocation();
   const [open, setOpen] = useState(false);
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -42,8 +50,6 @@ export function AiAssistant() {
 
   if (enabled === false) return null;
 
-  const pageContext = `${location.pathname}${currentOrg ? ` | ${currentOrg.name}` : ''}`;
-
   const send = async () => {
     const text = input.trim();
     if (!text || loading) return;
@@ -54,17 +60,23 @@ export function AiAssistant() {
     setLoading(true);
 
     try {
-      const { reply } = await api.aiChat({
+      const { reply } = await api.aiTourChat({
+        orgSlug,
+        tourSlug,
         messages: nextMessages,
         locale,
-        orgId: currentOrg?.id,
-        pageContext,
+        currentSceneId,
       });
       setMessages([...nextMessages, { role: 'assistant', content: reply }]);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : t('ai.error'), 'error');
-      setMessages(messages);
       setInput(text);
+      setMessages([
+        ...nextMessages,
+        {
+          role: 'assistant',
+          content: err instanceof Error ? err.message : t('tours.aiError'),
+        },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -81,39 +93,40 @@ export function AiAssistant() {
     <>
       <button
         type="button"
-        className="ai-fab"
+        className="tour-ai-fab"
         onClick={() => setOpen((v) => !v)}
-        aria-label={t('ai.assistant')}
-        title={t('ai.assistant')}
+        style={{ background: `linear-gradient(135deg, ${brandColor}, #6366f1)` }}
+        aria-label={t('tours.aiGuide')}
+        title={t('tours.aiGuide')}
       >
         {open ? <X className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
       </button>
 
       {open && (
-        <div className="ai-panel" role="dialog" aria-label={t('ai.assistant')}>
-          <div className="ai-panel-header">
+        <div className="tour-ai-panel" role="dialog" aria-label={t('tours.aiGuide')}>
+          <div className="tour-ai-panel-header">
             <div className="flex items-center gap-2 min-w-0">
-              <Sparkles className="w-4 h-4 text-[var(--brand)] shrink-0" />
+              <Sparkles className="w-4 h-4 shrink-0" style={{ color: brandColor }} />
               <div className="min-w-0">
-                <p className="font-semibold text-sm truncate">{t('ai.assistant')}</p>
-                <p className="text-[11px] text-secondary truncate">{t('ai.assistantDesc')}</p>
+                <p className="font-semibold text-sm truncate text-white">{t('tours.aiGuide')}</p>
+                <p className="text-[11px] text-white/55 truncate">{tourName}</p>
               </div>
             </div>
-            <button type="button" className="icon-btn shrink-0" onClick={() => setOpen(false)} aria-label={t('common.close')}>
+            <button type="button" className="tour-ai-close" onClick={() => setOpen(false)} aria-label={t('common.close')}>
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          <div ref={listRef} className="ai-panel-messages">
+          <div ref={listRef} className="tour-ai-messages">
             {messages.length === 0 && (
-              <div className="ai-welcome">
-                <p className="text-sm font-medium mb-2">{t('ai.welcome')}</p>
+              <div className="tour-ai-welcome">
+                <p className="text-sm text-white/90 mb-2">{t('tours.aiWelcome')}</p>
                 <div className="space-y-1.5">
-                  {[t('ai.suggest1'), t('ai.suggest2'), t('ai.suggest3')].map((s) => (
+                  {[t('tours.aiSuggest1'), t('tours.aiSuggest2'), t('tours.aiSuggest3')].map((s) => (
                     <button
                       key={s}
                       type="button"
-                      className="ai-suggest-chip"
+                      className="tour-ai-suggest"
                       onClick={() => { setInput(s); inputRef.current?.focus(); }}
                     >
                       {s}
@@ -123,35 +136,36 @@ export function AiAssistant() {
               </div>
             )}
             {messages.map((m, i) => (
-              <div key={i} className={`ai-msg ai-msg--${m.role}`}>
+              <div key={i} className={`tour-ai-msg tour-ai-msg--${m.role}`}>
                 {m.content}
               </div>
             ))}
             {loading && (
-              <div className="ai-msg ai-msg--assistant flex items-center gap-2">
+              <div className="tour-ai-msg tour-ai-msg--assistant flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                {t('ai.thinking')}
+                {t('tours.aiThinking')}
               </div>
             )}
           </div>
 
-          <div className="ai-panel-input">
+          <div className="tour-ai-input-row">
             <textarea
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={t('ai.placeholder')}
+              placeholder={t('tours.aiPlaceholder')}
               rows={2}
-              className="ai-input"
+              className="tour-ai-input"
               disabled={loading}
             />
             <button
               type="button"
               onClick={send}
               disabled={loading || !input.trim()}
-              className="ai-send-btn"
-              aria-label={t('ai.send')}
+              className="tour-ai-send"
+              style={{ backgroundColor: brandColor }}
+              aria-label={t('tours.aiSend')}
             >
               <Send className="w-4 h-4" />
             </button>

@@ -7,7 +7,6 @@ import { LayoutDashboard, Box, QrCode, CreditCard, LogOut, Menu, X, Settings, Ho
 import { AppBackground } from './FuturisticBg';
 import { LogoLink } from './Logo';
 import { LanguageSwitcher } from './LanguageSwitcher';
-import { AiAssistant } from './ai/AiAssistant';
 
 export function DashboardLayout() {
   const { user, currentOrg, organizations, setCurrentOrg, logout, isLoading } = useAuth();
@@ -205,7 +204,6 @@ export function DashboardLayout() {
           })}
         </div>
       </nav>
-      <AiAssistant />
     </div>
   );
 }

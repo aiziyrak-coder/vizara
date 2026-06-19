@@ -65,3 +65,9 @@ export const aiRateLimit = rateLimit({
   keyPrefix: 'ai',
   message: 'AI so\'rovlari limiti. Biroz kuting.',
 });
+export const tourAiRateLimit = rateLimit({
+  windowMs: 15 * 60_000,
+  max: 30,
+  keyPrefix: 'tour-ai',
+  message: 'AI gid limiti. Biroz kuting.',
+});

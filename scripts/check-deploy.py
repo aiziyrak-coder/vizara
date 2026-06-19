@@ -10,8 +10,8 @@ cmds = [
     'curl -s http://127.0.0.1:3011/api/health 2>/dev/null || echo API_DOWN',
     'ls /etc/nginx/sites-enabled/',
     'nginx -t 2>&1',
-    'curl -sI http://vizara.saxar.uz 2>/dev/null | head -5',
-    'curl -sI https://vizara.saxar.uz 2>/dev/null | head -5',
+    'curl -sI http://vizara.uz 2>/dev/null | head -5',
+    'curl -sI https://vizara.uz 2>/dev/null | head -5',
 ]
 for cmd in cmds:
     _, stdout, stderr = c.exec_command(cmd)

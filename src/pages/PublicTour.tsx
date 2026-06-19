@@ -45,6 +45,8 @@ export function PublicTour() {
 
   return (
     <VirtualTourViewer
+      orgSlug={orgSlug!}
+      tourSlug={tourSlug!}
       tour={data.tour}
       organization={data.organization}
       scenes={data.scenes}

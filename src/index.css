@@ -2732,6 +2732,150 @@ input[type="file"] {
   margin-top: 0.125rem;
 }
 
+/* Virtual tour AI guide */
+.tour-ai-fab {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  z-index: 45;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+}
+
+.tour-ai-panel {
+  position: fixed;
+  right: max(0.75rem, env(safe-area-inset-right));
+  bottom: calc(9.25rem + env(safe-area-inset-bottom, 0px));
+  z-index: 46;
+  width: min(22rem, calc(100vw - 1.5rem));
+  max-height: min(32rem, 62vh);
+  display: flex;
+  flex-direction: column;
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+.tour-ai-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tour-ai-close {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tour-ai-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  min-height: 8rem;
+}
+
+.tour-ai-welcome {
+  padding: 0.25rem 0;
+}
+
+.tour-ai-suggest {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  border-radius: 0.625rem;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.tour-ai-suggest:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.tour-ai-msg {
+  max-width: 92%;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.875rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.tour-ai-msg--user {
+  align-self: flex-end;
+  background: rgba(99, 102, 241, 0.9);
+  color: #fff;
+}
+
+.tour-ai-msg--assistant {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.tour-ai-input-row {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  align-items: flex-end;
+}
+
+.tour-ai-input {
+  flex: 1;
+  resize: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  min-height: 2.5rem;
+}
+
+.tour-ai-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.tour-ai-send {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.tour-ai-send:disabled {
+  opacity: 0.45;
+}
+
 .tour-gyro-btn {
   width: 2.5rem;
   height: 2.5rem;

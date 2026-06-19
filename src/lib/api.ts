@@ -295,6 +295,18 @@ export const api = {
   aiStatus: () =>
     request<{ enabled: boolean; model?: string }>('/ai/status'),
 
+  aiTourChat: (data: {
+    orgSlug: string;
+    tourSlug: string;
+    messages: { role: 'user' | 'assistant'; content: string }[];
+    locale?: string;
+    currentSceneId?: string;
+  }) =>
+    request<{ reply: string }>('/ai/tour-chat', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   aiChat: (data: {
     messages: { role: 'user' | 'assistant'; content: string }[];
     locale?: string;

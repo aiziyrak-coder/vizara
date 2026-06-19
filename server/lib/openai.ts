@@ -179,3 +179,59 @@ Return ONLY valid JSON with these fields: ${schema.fields.join(', ')}. No markdo
 
   return result;
 }
+
+export interface TourGuideScene {
+  name: string;
+  description?: string | null;
+  hotspots: Array<{
+    type: string;
+    title?: string | null;
+    text?: string | null;
+    body?: string | null;
+  }>;
+}
+
+export interface TourGuideContext {
+  orgName: string;
+  tourName: string;
+  description?: string | null;
+  currentSceneName?: string;
+  scenes: TourGuideScene[];
+}
+
+const TOUR_GUIDE_SYSTEM = `You are Vizara Tour Guide AI — a knowledgeable, friendly guide inside a live 360° virtual tour.
+Answer visitor questions using the tour information provided (scenes, hotspots, descriptions).
+Help visitors navigate between rooms, explain points of interest, and make the experience engaging.
+If the answer is not in the tour data, say honestly that this tour does not include that information.
+Keep answers clear and concise (2-5 sentences unless the visitor asks for detail).
+Never invent prices, opening hours, or facts not supported by the tour context.`;
+
+export async function chatAsTourGuide(
+  messages: { role: 'user' | 'assistant'; content: string }[],
+  context: TourGuideContext,
+  locale?: string
+): Promise<string> {
+  const openai = getClient();
+  const lang = localeLabel(locale);
+  const contextJson = JSON.stringify(context, null, 0).slice(0, 7000);
+
+  const response = await openai.chat.completions.create({
+    model: resolveModel(true),
+    temperature: 0.65,
+    max_tokens: 900,
+    messages: [
+      {
+        role: 'system',
+        content: `${TOUR_GUIDE_SYSTEM}\nRespond in: ${lang}.\nTour context JSON:\n${contextJson}`,
+      },
+      ...messages.slice(-16).map((m) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content.slice(0, 2000),
+      })),
+    ],
+  });
+
+  const content = response.choices[0]?.message?.content?.trim();
+  if (!content) throw new Error('AI_EMPTY_RESPONSE');
+  return content;
+}

@@ -7,6 +7,7 @@ import { parseTourSettings, type TourHotspotPayload } from '../../shared/tour-ty
 import { useI18n } from '../lib/i18n-context';
 import { Preloader } from './Preloader';
 import { TourHotspotModal } from './tour/TourHotspotModal';
+import { TourAiGuide } from './tour/TourAiGuide';
 
 interface TourScene {
   id: string;
@@ -30,13 +31,15 @@ interface PannellumViewer {
 }
 
 interface VirtualTourViewerProps {
+  orgSlug: string;
+  tourSlug: string;
   tour: { name: string; description?: string | null; startSceneId: string; settings?: string | null };
   organization: { name: string; brandColor: string; website?: string };
   scenes: TourScene[];
   whiteLabel?: boolean;
 }
 
-export function VirtualTourViewer({ tour, organization, scenes, whiteLabel }: VirtualTourViewerProps) {
+export function VirtualTourViewer({ orgSlug, tourSlug, tour, organization, scenes, whiteLabel }: VirtualTourViewerProps) {
   const { t } = useI18n();
   const { ready, error } = usePannellum();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -243,6 +246,14 @@ export function VirtualTourViewer({ tour, organization, scenes, whiteLabel }: Vi
       {activeHotspot && (
         <TourHotspotModal hotspot={activeHotspot} onClose={() => setActiveHotspot(null)} />
       )}
+
+      <TourAiGuide
+        orgSlug={orgSlug}
+        tourSlug={tourSlug}
+        tourName={tour.name}
+        currentSceneId={currentSceneId}
+        brandColor={brand}
+      />
     </div>
   );
 }

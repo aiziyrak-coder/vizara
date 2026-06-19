@@ -7,7 +7,7 @@ for cmd in [
     'ls -la /etc/nginx/sites-enabled/',
     'ss -tlnp | head -30',
     'which pm2; which certbot',
-    'dig +short vizara.saxar.uz; dig +short vizaraapi.saxar.uz',
+    'dig +short vizara.uz; dig +short api.vizara.uz',
 ]:
     _, stdout, stderr = c.exec_command(cmd)
     print('===', cmd)

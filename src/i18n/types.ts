@@ -404,6 +404,15 @@ export interface TranslationSchema {
     panoramaRequired: string;
     fullscreen: string;
     exitFullscreen: string;
+    aiGuide: string;
+    aiWelcome: string;
+    aiSuggest1: string;
+    aiSuggest2: string;
+    aiSuggest3: string;
+    aiPlaceholder: string;
+    aiSend: string;
+    aiThinking: string;
+    aiError: string;
   };
   billing: {
     title: string;

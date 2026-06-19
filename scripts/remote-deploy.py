@@ -95,8 +95,8 @@ PORT=3011
 HOST=127.0.0.1
 DATABASE_URL=file:{APP_DIR}/data/vizara.db
 JWT_SECRET=$JWT
-APP_URL=https://vizara.saxar.uz
-CORS_ORIGIN=https://vizara.saxar.uz
+APP_URL=https://vizara.uz
+CORS_ORIGIN=https://vizara.uz
 DEMO_MODE=true
 ALLOW_DEMO_IN_PRODUCTION=true
 TRUST_PROXY_HOPS=1
@@ -104,8 +104,15 @@ MAX_UPLOAD_SIZE_MB=4096
 ENVEOF
 fi
 
+if [ -f .env ]; then
+  sed -i 's|https://vizara.saxar.uz|https://vizara.uz|g' .env
+  sed -i 's|https://vizaraapi.saxar.uz|https://api.vizara.uz|g' .env
+  sed -i 's|^APP_URL=.*|APP_URL=https://vizara.uz|' .env
+  sed -i 's|^CORS_ORIGIN=.*|CORS_ORIGIN=https://vizara.uz|' .env
+fi
+
 cat > .env.production <<'ENVEOF'
-VITE_API_URL=https://vizaraapi.saxar.uz/api
+VITE_API_URL=https://api.vizara.uz/api
 ENVEOF
 
 npm ci
@@ -121,28 +128,30 @@ pm2 startup systemd -u root --hp /root 2>/dev/null || true
 mkdir -p /var/www/certbot
 
 # Phase 1: HTTP nginx (for certbot + initial serve)
-cp deploy/nginx-vizara-frontend-http.conf /etc/nginx/sites-available/vizara.saxar.uz.conf
-cp deploy/nginx-vizara-api-http.conf /etc/nginx/sites-available/vizaraapi.saxar.uz.conf
-ln -sf /etc/nginx/sites-available/vizara.saxar.uz.conf /etc/nginx/sites-enabled/
-ln -sf /etc/nginx/sites-available/vizaraapi.saxar.uz.conf /etc/nginx/sites-enabled/
+cp deploy/nginx-vizara-frontend-http.conf /etc/nginx/sites-available/vizara.uz.conf
+cp deploy/nginx-vizara-api-http.conf /etc/nginx/sites-available/api.vizara.uz.conf
+cp deploy/nginx-legacy-saxar-redirect.conf /etc/nginx/sites-available/legacy-saxar-redirect.conf
+ln -sf /etc/nginx/sites-available/vizara.uz.conf /etc/nginx/sites-enabled/
+ln -sf /etc/nginx/sites-available/api.vizara.uz.conf /etc/nginx/sites-enabled/
+ln -sf /etc/nginx/sites-available/legacy-saxar-redirect.conf /etc/nginx/sites-enabled/
 nginx -t && systemctl reload nginx
 
 # Phase 2: SSL certificates
-if [ ! -f /etc/letsencrypt/live/vizara.saxar.uz/fullchain.pem ]; then
-  certbot certonly --webroot -w /var/www/certbot -d vizara.saxar.uz \\
-    --non-interactive --agree-tos -m admin@saxar.uz || true
+if [ ! -f /etc/letsencrypt/live/vizara.uz/fullchain.pem ]; then
+  certbot certonly --webroot -w /var/www/certbot -d vizara.uz -d www.vizara.uz \\
+    --non-interactive --agree-tos -m admin@vizara.uz || true
 fi
-if [ ! -f /etc/letsencrypt/live/vizaraapi.saxar.uz/fullchain.pem ]; then
-  certbot certonly --webroot -w /var/www/certbot -d vizaraapi.saxar.uz \\
-    --non-interactive --agree-tos -m admin@saxar.uz || true
+if [ ! -f /etc/letsencrypt/live/api.vizara.uz/fullchain.pem ]; then
+  certbot certonly --webroot -w /var/www/certbot -d api.vizara.uz \\
+    --non-interactive --agree-tos -m admin@vizara.uz || true
 fi
 
 # Phase 3: Full HTTPS nginx configs
-if [ -f /etc/letsencrypt/live/vizara.saxar.uz/fullchain.pem ]; then
-  cp deploy/nginx-vizara-frontend.conf /etc/nginx/sites-available/vizara.saxar.uz.conf
+if [ -f /etc/letsencrypt/live/vizara.uz/fullchain.pem ]; then
+  cp deploy/nginx-vizara-frontend.conf /etc/nginx/sites-available/vizara.uz.conf
 fi
-if [ -f /etc/letsencrypt/live/vizaraapi.saxar.uz/fullchain.pem ]; then
-  cp deploy/nginx-vizara-api.conf /etc/nginx/sites-available/vizaraapi.saxar.uz.conf
+if [ -f /etc/letsencrypt/live/api.vizara.uz/fullchain.pem ]; then
+  cp deploy/nginx-vizara-api.conf /etc/nginx/sites-available/api.vizara.uz.conf
 fi
 nginx -t && systemctl reload nginx
 echo DEPLOY_OK
@@ -155,8 +164,8 @@ echo DEPLOY_OK
     run(client, "pm2 list")
     client.close()
     print("\n=== DONE ===")
-    print("Frontend: https://vizara.saxar.uz")
-    print("API:      https://vizaraapi.saxar.uz/api/health")
+    print("Frontend: https://vizara.uz")
+    print("API:      https://api.vizara.uz/api/health")
 
 
 if __name__ == "__main__":

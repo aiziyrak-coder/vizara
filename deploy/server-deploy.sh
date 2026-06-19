@@ -42,8 +42,8 @@ PORT=$API_PORT
 HOST=127.0.0.1
 DATABASE_URL=file:$APP_DIR/data/vizara.db
 JWT_SECRET=$JWT
-APP_URL=https://vizara.saxar.uz
-CORS_ORIGIN=https://vizara.saxar.uz
+APP_URL=https://vizara.uz
+CORS_ORIGIN=https://vizara.uz
 DEMO_MODE=true
 ALLOW_DEMO_IN_PRODUCTION=true
 TRUST_PROXY_HOPS=1
@@ -52,9 +52,19 @@ EOF
 fi
 
 # Frontend build env
-cat > .env.production <<'EOF'
-VITE_API_URL=https://vizaraapi.saxar.uz/api
-EOF
+cat > .env.production <<'ENVEOF'
+VITE_API_URL=https://api.vizara.uz/api
+ENVEOF
+
+# Sync domain vars on existing installs
+if [ -f .env ]; then
+  sed -i 's|https://vizara.saxar.uz|https://vizara.uz|g' .env
+  sed -i 's|https://vizaraapi.saxar.uz|https://api.vizara.uz|g' .env
+  grep -q '^APP_URL=' .env || echo 'APP_URL=https://vizara.uz' >> .env
+  grep -q '^CORS_ORIGIN=' .env || echo 'CORS_ORIGIN=https://vizara.uz' >> .env
+  sed -i 's|^APP_URL=.*|APP_URL=https://vizara.uz|' .env
+  sed -i 's|^CORS_ORIGIN=.*|CORS_ORIGIN=https://vizara.uz|' .env
+fi
 
 npm ci
 npx prisma migrate deploy 2>/dev/null || npx prisma db push --skip-generate
@@ -66,23 +76,25 @@ pm2 start dist-server/index.js --name vizara-api --cwd "$APP_DIR"
 pm2 save
 
 # Nginx — add ONLY our configs (do not touch other sites)
-cp deploy/nginx-vizara-frontend.conf /etc/nginx/sites-available/vizara.saxar.uz.conf
-cp deploy/nginx-vizara-api.conf /etc/nginx/sites-available/vizaraapi.saxar.uz.conf
-ln -sf /etc/nginx/sites-available/vizara.saxar.uz.conf /etc/nginx/sites-enabled/
-ln -sf /etc/nginx/sites-available/vizaraapi.saxar.uz.conf /etc/nginx/sites-enabled/
+cp deploy/nginx-vizara-frontend.conf /etc/nginx/sites-available/vizara.uz.conf
+cp deploy/nginx-vizara-api.conf /etc/nginx/sites-available/api.vizara.uz.conf
+cp deploy/nginx-legacy-saxar-redirect.conf /etc/nginx/sites-available/legacy-saxar-redirect.conf
+ln -sf /etc/nginx/sites-available/vizara.uz.conf /etc/nginx/sites-enabled/
+ln -sf /etc/nginx/sites-available/api.vizara.uz.conf /etc/nginx/sites-enabled/
+ln -sf /etc/nginx/sites-available/legacy-saxar-redirect.conf /etc/nginx/sites-enabled/
 
 # SSL certs (only if missing)
-if [ ! -d /etc/letsencrypt/live/vizara.saxar.uz ]; then
-  certbot certonly --nginx -d vizara.saxar.uz --non-interactive --agree-tos -m admin@saxar.uz || \
-  certbot certonly --webroot -w /var/www/certbot -d vizara.saxar.uz --non-interactive --agree-tos -m admin@saxar.uz
+if [ ! -d /etc/letsencrypt/live/vizara.uz ]; then
+  certbot certonly --nginx -d vizara.uz -d www.vizara.uz --non-interactive --agree-tos -m admin@vizara.uz || \
+  certbot certonly --webroot -w /var/www/certbot -d vizara.uz -d www.vizara.uz --non-interactive --agree-tos -m admin@vizara.uz
 fi
-if [ ! -d /etc/letsencrypt/live/vizaraapi.saxar.uz ]; then
-  certbot certonly --nginx -d vizaraapi.saxar.uz --non-interactive --agree-tos -m admin@saxar.uz || \
-  certbot certonly --webroot -w /var/www/certbot -d vizaraapi.saxar.uz --non-interactive --agree-tos -m admin@saxar.uz
+if [ ! -d /etc/letsencrypt/live/api.vizara.uz ]; then
+  certbot certonly --nginx -d api.vizara.uz --non-interactive --agree-tos -m admin@vizara.uz || \
+  certbot certonly --webroot -w /var/www/certbot -d api.vizara.uz --non-interactive --agree-tos -m admin@vizara.uz
 fi
 
 nginx -t && systemctl reload nginx
 
 echo "=== Deploy complete ==="
-echo "Frontend: https://vizara.saxar.uz"
-echo "API:      https://vizaraapi.saxar.uz/api/health"
+echo "Frontend: https://vizara.uz"
+echo "API:      https://api.vizara.uz/api/health"

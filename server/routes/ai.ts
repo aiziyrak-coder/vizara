@@ -1,21 +1,20 @@
 import { Router, Response } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
-import { aiRateLimit } from '../middleware/rate-limit.js';
+import { aiRateLimit, tourAiRateLimit } from '../middleware/rate-limit.js';
 import { clampString } from '../lib/validate.js';
 import { prisma } from '../lib/prisma.js';
+import { loadTourGuideContext } from '../lib/tour-ai-context.js';
 import {
   isAiEnabled,
   isValidAiTask,
   chatWithAi,
+  chatAsTourGuide,
   generateAiContent,
   type AiTask,
 } from '../lib/openai.js';
 import { logger } from '../lib/logger.js';
 
 const router = Router();
-
-router.use(requireAuth);
-router.use(aiRateLimit);
 
 function aiUnavailable(res: Response) {
   res.status(503).json({ error: 'AI xizmati hozircha mavjud emas', code: 'AI_NOT_CONFIGURED' });
@@ -41,6 +40,58 @@ router.get('/status', (_req, res) => {
     model: process.env.AI_MODEL || 'gpt-4o',
   });
 });
+
+router.post('/tour-chat', tourAiRateLimit, async (req, res) => {
+  if (!isAiEnabled()) {
+    aiUnavailable(res);
+    return;
+  }
+
+  const orgSlug = clampString(req.body?.orgSlug, 80);
+  const tourSlug = clampString(req.body?.tourSlug, 80);
+  if (!orgSlug || !tourSlug) {
+    res.status(400).json({ error: 'Tur manzili talab qilinadi' });
+    return;
+  }
+
+  const messages = req.body?.messages;
+  if (!Array.isArray(messages) || messages.length === 0) {
+    res.status(400).json({ error: 'Xabarlar talab qilinadi' });
+    return;
+  }
+
+  const sanitized = messages
+    .slice(-16)
+    .map((m: { role?: string; content?: string }) => ({
+      role: m.role === 'assistant' ? 'assistant' as const : 'user' as const,
+      content: clampString(m.content, 2000) || '',
+    }))
+    .filter((m) => m.content);
+
+  if (sanitized.length === 0) {
+    res.status(400).json({ error: 'Bo\'sh xabar yuborilmaydi' });
+    return;
+  }
+
+  const locale = clampString(req.body?.locale, 12) || 'uz';
+  const currentSceneId = clampString(req.body?.currentSceneId, 64) || undefined;
+
+  try {
+    const context = await loadTourGuideContext(orgSlug, tourSlug, currentSceneId);
+    if (!context) {
+      res.status(404).json({ error: 'Virtual tur topilmadi' });
+      return;
+    }
+
+    const reply = await chatAsTourGuide(sanitized, context, locale);
+    res.json({ reply });
+  } catch (err) {
+    handleAiError(res, err);
+  }
+});
+
+router.use(requireAuth);
+router.use(aiRateLimit);
 
 router.post('/chat', async (req: AuthRequest, res: Response) => {
   if (!isAiEnabled()) {
