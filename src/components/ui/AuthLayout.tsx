@@ -26,7 +26,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
     <PageShell className="min-h-app">
       <div className="grid lg:grid-cols-2 min-h-app">
         <div className="hidden lg:flex flex-col justify-between auth-panel p-12 relative z-10">
-          <LogoLink size="md" variant="light" />
+          <LogoLink size="md" variant="light" animated />
           <div>
             <h2 className="text-3xl font-bold text-white leading-tight mb-4 tracking-tight">
               {t('auth.panelTitle')}
@@ -59,7 +59,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           <div className="flex-1 flex items-center justify-center p-4 sm:p-6 pb-10">
             <div className="w-full max-w-[400px]">
               <div className="lg:hidden text-center mb-6">
-                <LogoLink size="md" />
+                <LogoLink size="md" animated />
               </div>
               <div className="glass-liquid p-5 sm:p-8 rounded-[var(--radius-xl)]">
                 <h1 className="text-xl font-bold mb-1 tracking-tight">{title}</h1>

@@ -459,7 +459,7 @@ export function Landing() {
         <div className="container py-10">
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <LogoLink size="sm" />
+              <LogoLink size="sm" animated />
               <p className="text-sm text-secondary mt-3 leading-relaxed">{t('landing.footerDesc')}</p>
             </div>
             <div>

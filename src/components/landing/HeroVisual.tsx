@@ -14,7 +14,7 @@ export function HeroVisual() {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
       >
-        <VizaraMark height={88} animated />
+        <VizaraMark height={100} animated />
       </motion.div>
       <motion.div
         className="landing-hero-float landing-hero-float-ar"

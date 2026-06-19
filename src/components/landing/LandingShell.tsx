@@ -74,7 +74,7 @@ export function LandingShell({ children, user }: LandingShellProps) {
       <header className={`landing-nav safe-top ${scrolled ? 'landing-nav--scrolled' : ''}`}>
         <div className="landing-nav-inner container">
           <div className="landing-nav-brand">
-            <LogoLink size="sm" />
+            <LogoLink size="sm" animated />
           </div>
 
           <nav className="landing-nav-links" aria-label={t('landing.navSections')}>
@@ -143,7 +143,7 @@ export function LandingShell({ children, user }: LandingShellProps) {
               transition={{ type: 'spring', stiffness: 380, damping: 32 }}
             >
               <div className="landing-mobile-menu-head">
-                <LogoLink size="sm" />
+                <LogoLink size="sm" animated />
                 <button type="button" className="icon-btn" onClick={() => setMenuOpen(false)} aria-label={t('common.close')}>
                   <X className="w-5 h-5" />
                 </button>

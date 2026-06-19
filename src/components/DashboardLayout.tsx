@@ -64,7 +64,7 @@ export function DashboardLayout() {
 
       <aside className="glass-sidebar relative z-10 hidden lg:flex w-[268px] shrink-0 flex-col">
         <div className="p-5 flex items-center justify-between">
-          <LogoLink size="sm" />
+          <LogoLink size="sm" animated />
           <Link to="/" className="icon-btn" title={t('common.home')}>
             <Home className="w-4 h-4" />
           </Link>
@@ -126,7 +126,7 @@ export function DashboardLayout() {
               <Home className="w-5 h-5" />
             </Link>
             <div className="shrink-0">
-              <LogoLink size="sm" />
+              <LogoLink size="sm" animated />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold leading-tight truncate">{pageTitle}</p>

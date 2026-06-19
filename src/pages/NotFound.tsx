@@ -10,7 +10,7 @@ export function NotFound() {
     <PageShell className="min-h-app flex flex-col safe-top safe-bottom">
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="text-center max-w-sm">
-          <LogoLink size="md" />
+          <LogoLink size="md" animated />
           <h1 className="text-6xl font-extrabold text-[#0f172a] mt-8 mb-2">{t('errors.notFound')}</h1>
           <p className="text-[#64748b] mb-6">{t('errors.pageNotFound')}</p>
           <Link to="/" className="btn btn-primary w-full sm:w-auto">{t('common.home')}</Link>
