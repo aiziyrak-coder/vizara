@@ -330,6 +330,11 @@ export interface TranslationSchema {
     notFound: string;
     notFoundDesc: string;
     navigateHint: string;
+    scenes: string;
+    gyroOn: string;
+    gyroOff: string;
+    panoramaError: string;
+    clickToPlace: string;
     poweredBy: string;
   };
   billing: {
@@ -401,6 +406,10 @@ export interface TranslationSchema {
     noCameraDesc: string;
     cameraLoading: string;
     photoSaved: string;
+    photoReady: string;
+    photoSaveHint: string;
+    sharePhoto: string;
+    downloadPhoto: string;
     switchCamera: string;
     capture: string;
     modelNotFound: string;

@@ -82,7 +82,23 @@ app.use((err: unknown, _req: express.Request, res: express.Response, next: expre
   next(err);
 });
 
-app.use('/uploads', (_req, res, next) => {
+app.use('/uploads', (req, res, next) => {
+  const origin = req.headers.origin;
+  const corsOrigin = process.env.CORS_ORIGIN || process.env.APP_URL || process.env.FRONTEND_URL;
+  const allowed = corsOrigin
+    ? corsOrigin.split(',').map((o) => o.trim().replace(/\/$/, '')).filter(Boolean)
+    : [];
+
+  if (origin) {
+    const normalized = origin.replace(/\/$/, '');
+    if (!isProd || allowed.length === 0 || allowed.includes(normalized)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+    }
+  } else if (!isProd) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
   next();

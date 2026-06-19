@@ -6,9 +6,24 @@ export function useCamera(facingMode: FacingMode) {
   const streamRef = useRef<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isReady, setIsReady] = useState(false);
 
   const stopStream = useCallback((stream: MediaStream | null) => {
     stream?.getTracks().forEach((track) => track.stop());
+  }, []);
+
+  const waitForVideoDimensions = useCallback((video: HTMLVideoElement) => {
+    return new Promise<void>((resolve) => {
+      const check = () => {
+        if (video.videoWidth > 0 && video.videoHeight > 0) {
+          setIsReady(true);
+          resolve();
+          return;
+        }
+        requestAnimationFrame(check);
+      };
+      check();
+    });
   }, []);
 
   const attachStream = useCallback(async (mediaStream: MediaStream) => {
@@ -16,8 +31,10 @@ export function useCamera(facingMode: FacingMode) {
     const video = videoRef.current;
     if (!video) return;
 
+    setIsReady(false);
     video.srcObject = mediaStream;
     video.setAttribute('playsinline', 'true');
+    video.setAttribute('webkit-playsinline', 'true');
     video.muted = true;
 
     await new Promise<void>((resolve) => {
@@ -29,12 +46,14 @@ export function useCamera(facingMode: FacingMode) {
     });
 
     await video.play().catch(() => {});
+    await waitForVideoDimensions(video);
     setIsLoading(false);
     setError(null);
-  }, []);
+  }, [waitForVideoDimensions]);
 
   const startCamera = useCallback(async () => {
     setIsLoading(true);
+    setIsReady(false);
     setError(null);
     stopStream(streamRef.current);
     streamRef.current = null;
@@ -58,13 +77,21 @@ export function useCamera(facingMode: FacingMode) {
     } catch {
       try {
         const fallback = await navigator.mediaDevices.getUserMedia({
-          video: true,
+          video: { facingMode },
           audio: false,
         });
         await attachStream(fallback);
       } catch {
-        setError('Kameraga ruxsat berilmadi yoki qurilma topilmadi.');
-        setIsLoading(false);
+        try {
+          const fallback = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false,
+          });
+          await attachStream(fallback);
+        } catch {
+          setError('Kameraga ruxsat berilmadi yoki qurilma topilmadi.');
+          setIsLoading(false);
+        }
       }
     }
   }, [attachStream, facingMode, stopStream]);
@@ -76,6 +103,7 @@ export function useCamera(facingMode: FacingMode) {
       if (!cancelled) {
         setError('Kamerani ishga tushirib bo\'lmadi.');
         setIsLoading(false);
+        setIsReady(false);
       }
     });
 
@@ -90,5 +118,5 @@ export function useCamera(facingMode: FacingMode) {
     startCamera();
   };
 
-  return { videoRef, error, isLoading, retry };
+  return { videoRef, error, isLoading, isReady, retry };
 }

@@ -1,5 +1,11 @@
 import { FacingMode, OverlayConfig, DEFAULT_OVERLAY } from '../types';
 
+export interface CaptureResult {
+  blob: Blob;
+  dataUrl: string;
+  filename: string;
+}
+
 export function drawOverlay(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -61,18 +67,73 @@ export function drawOverlay(
   ctx.fillText(cfg.website || '', m, height - m - 20 * scale);
 
   ctx.font = `${14 * scale}px sans-serif`;
-  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
   ctx.fillText(cfg.watermark || 'Powered by Vizara', m, height - m);
 }
 
-export const takeSnapshot = async (
+function waitForVideoFrame(video: HTMLVideoElement): Promise<void> {
+  if (video.videoWidth > 0 && video.videoHeight > 0) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      cleanup();
+      reject(new Error('Kamera hali tayyor emas. Biroz kuting va qayta urinib ko\'ring.'));
+    }, 8000);
+
+    const onReady = () => {
+      if (video.videoWidth > 0 && video.videoHeight > 0) {
+        cleanup();
+        resolve();
+      }
+    };
+
+    const cleanup = () => {
+      window.clearTimeout(timeout);
+      video.removeEventListener('loadeddata', onReady);
+      video.removeEventListener('resize', onReady);
+    };
+
+    video.addEventListener('loadeddata', onReady);
+    video.addEventListener('resize', onReady);
+    onReady();
+  });
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob);
+          return;
+        }
+        try {
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+          const byteString = atob(dataUrl.split(',')[1] || '');
+          const mime = 'image/jpeg';
+          const buffer = new Uint8Array(byteString.length);
+          for (let i = 0; i < byteString.length; i++) {
+            buffer[i] = byteString.charCodeAt(i);
+          }
+          resolve(new Blob([buffer], { type: mime }));
+        } catch {
+          reject(new Error('Rasm yaratib bo\'lmadi'));
+        }
+      },
+      'image/jpeg',
+      0.92
+    );
+  });
+}
+
+export async function captureFromVideo(
   video: HTMLVideoElement,
   facingMode: FacingMode,
   config?: OverlayConfig
-): Promise<void> => {
-  if (!video.videoWidth || !video.videoHeight) {
-    throw new Error('Kamera hali tayyor emas. Biroz kuting va qayta urinib ko\'ring.');
-  }
+): Promise<CaptureResult> {
+  await waitForVideoFrame(video);
 
   const canvas = document.createElement('canvas');
   canvas.width = video.videoWidth;
@@ -93,35 +154,59 @@ export const takeSnapshot = async (
 
   drawOverlay(ctx, canvas.width, canvas.height, config);
 
-  const filename = `vizara-photo-${Date.now()}.png`;
+  const blob = await canvasToBlob(canvas);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+  const filename = `vizara-photo-${Date.now()}.jpg`;
 
-  await new Promise<void>((resolve, reject) => {
-    canvas.toBlob(async (blob) => {
-      if (!blob) {
-        reject(new Error('Rasm yaratib bo\'lmadi'));
-        return;
+  return { blob, dataUrl, filename };
+}
+
+function isShareCancelled(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  return err.name === 'AbortError' || /cancel|abort|dismiss/i.test(err.message);
+}
+
+export async function shareCapture(result: CaptureResult): Promise<boolean> {
+  const file = new File([result.blob], result.filename, { type: result.blob.type || 'image/jpeg' });
+
+  if (navigator.share) {
+    try {
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'Vizara Photo' });
+        return true;
       }
+      await navigator.share({ title: 'Vizara Photo', text: 'Vizara Photo' });
+      return true;
+    } catch (err) {
+      if (isShareCancelled(err)) return false;
+      throw err;
+    }
+  }
 
-      try {
-        const file = new File([blob], filename, { type: 'image/png' });
-        if (navigator.share && navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ files: [file], title: 'Vizara Photo' });
-          resolve();
-          return;
-        }
+  return false;
+}
 
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
-        resolve();
-      } catch (err) {
-        reject(err instanceof Error ? err : new Error('Rasm saqlanmadi'));
-      }
-    }, 'image/png', 0.92);
-  });
+export async function downloadCapture(result: CaptureResult): Promise<void> {
+  const url = URL.createObjectURL(result.blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = result.filename;
+  link.rel = 'noopener';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** @deprecated Use captureFromVideo + shareCapture */
+export const takeSnapshot = async (
+  video: HTMLVideoElement,
+  facingMode: FacingMode,
+  config?: OverlayConfig
+): Promise<void> => {
+  const result = await captureFromVideo(video, facingMode, config);
+  const shared = await shareCapture(result);
+  if (!shared) {
+    await downloadCapture(result);
+  }
 };

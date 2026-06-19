@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, useCallback, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { useI18n } from '../lib/i18n-context';
@@ -6,6 +6,7 @@ import { api, TourDetail, TourScene } from '../lib/api';
 import { useToast } from '../lib/toast-context';
 import { ArrowLeft, Upload, Trash2, Star, Link2, Plus, ExternalLink } from 'lucide-react';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import { TourPanoramaPicker } from '../components/TourPanoramaPicker';
 import { resolveUploadUrl } from '../lib/assets';
 
 export function TourEditor() {
@@ -20,6 +21,14 @@ export function TourEditor() {
   const [hotspotSceneId, setHotspotSceneId] = useState<string | null>(null);
   const [hotspotForm, setHotspotForm] = useState({ targetSceneId: '', text: '', pitch: '0', yaw: '0' });
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  const handleHotspotPick = useCallback((pitch: number, yaw: number) => {
+    setHotspotForm((prev) => ({
+      ...prev,
+      pitch: String(Math.round(pitch * 10) / 10),
+      yaw: String(Math.round(yaw * 10) / 10),
+    }));
+  }, []);
 
   const load = async () => {
     if (!currentOrg || !tourId) return;
@@ -213,6 +222,15 @@ export function TourEditor() {
               {hotspotSceneId === scene.id && otherScenes(scene).length > 0 && (
                 <form onSubmit={handleAddHotspot} className="border-t border-[#e2e8f0] p-4 bg-[#f8fafc] space-y-3">
                   <p className="text-sm font-medium flex items-center gap-2"><Plus className="w-4 h-4" /> {t('tours.addHotspot')}</p>
+                  <TourPanoramaPicker
+                    sceneId={scene.id}
+                    sceneName={scene.name}
+                    panoramaUrl={scene.panoramaUrl}
+                    pitch={scene.pitch}
+                    yaw={scene.yaw}
+                    hfov={scene.hfov}
+                    onPick={handleHotspotPick}
+                  />
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div>
                       <label className="label">{t('tours.targetScene')}</label>
@@ -227,15 +245,15 @@ export function TourEditor() {
                     </div>
                     <div>
                       <label className="label">{t('tours.pitch')}</label>
-                      <input type="number" value={hotspotForm.pitch} onChange={(e) => setHotspotForm({ ...hotspotForm, pitch: e.target.value })} className="input" />
+                      <input type="number" step="0.1" value={hotspotForm.pitch} onChange={(e) => setHotspotForm({ ...hotspotForm, pitch: e.target.value })} className="input" />
                     </div>
                     <div>
                       <label className="label">{t('tours.yaw')}</label>
-                      <input type="number" value={hotspotForm.yaw} onChange={(e) => setHotspotForm({ ...hotspotForm, yaw: e.target.value })} className="input" />
+                      <input type="number" step="0.1" value={hotspotForm.yaw} onChange={(e) => setHotspotForm({ ...hotspotForm, yaw: e.target.value })} className="input" />
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button type="submit" className="btn btn-primary text-sm">{t('tours.saveHotspot')}</button>
+                    <button type="submit" className="btn btn-primary text-sm" disabled={!hotspotForm.targetSceneId}>{t('tours.saveHotspot')}</button>
                     <button type="button" onClick={() => setHotspotSceneId(null)} className="btn btn-secondary text-sm">{t('common.cancel')}</button>
                   </div>
                 </form>

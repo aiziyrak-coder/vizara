@@ -25,7 +25,7 @@ export function PublicTour() {
   if (loading) {
     return (
       <div className="min-h-app flex items-center justify-center bg-[#0f172a] safe-top safe-bottom">
-        <LoadingSpinner label={t('tour.loading')} />
+        <LoadingSpinner label={t('tours.loading')} />
       </div>
     );
   }
@@ -35,8 +35,8 @@ export function PublicTour() {
       <div className="min-h-app flex items-center justify-center p-4 bg-[#0f172a] safe-top safe-bottom">
         <div className="text-center max-w-sm card p-8 w-full">
           <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-4" />
-          <p className="text-lg font-bold text-white mb-2">{t('tour.notFound')}</p>
-          <p className="text-white/60 text-sm">{error || t('tour.notFoundDesc')}</p>
+          <p className="text-lg font-bold text-white mb-2">{t('tours.notFound')}</p>
+          <p className="text-white/60 text-sm">{error || t('tours.notFoundDesc')}</p>
           <div className="mt-6 flex justify-center"><Logo size="sm" animated /></div>
         </div>
       </div>
