@@ -65,6 +65,14 @@ export function parseTourSettings(raw?: string | null): TourSettings {
   }
 }
 
+export const TOUR_MARKER_ICONS = ['door', 'walk', 'arrow', 'pin'] as const;
+export type TourMarkerIcon = (typeof TOUR_MARKER_ICONS)[number];
+
+export function normalizeMarkerIcon(icon?: string | null): TourMarkerIcon | null {
+  if (!icon) return null;
+  return TOUR_MARKER_ICONS.includes(icon as TourMarkerIcon) ? (icon as TourMarkerIcon) : null;
+}
+
 export function hotspotIconClass(type: string): string {
   switch (type) {
     case 'scene': return 'vizara-hs-scene';
@@ -75,6 +83,13 @@ export function hotspotIconClass(type: string): string {
     case 'banner': return 'vizara-hs-banner';
     default: return 'vizara-hs-info';
   }
+}
+
+/** Combined type + custom marker icon for Pannellum cssClass */
+export function hotspotMarkerClass(type: string, icon?: string | null): string {
+  const marker = normalizeMarkerIcon(icon);
+  if (marker) return `vizara-hs-marker vizara-hs-${marker}`;
+  return hotspotIconClass(type);
 }
 
 export function isMediaGif(url: string, mediaType?: string | null): boolean {

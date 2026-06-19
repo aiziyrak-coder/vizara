@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import {
   Navigation, Info, Image, Video, Music, Link2, Flag,
 } from 'lucide-react';
-import { TOUR_HOTSPOT_TYPES, type TourHotspotType } from '../../../shared/tour-types';
+import { TOUR_HOTSPOT_TYPES, TOUR_MARKER_ICONS, type TourHotspotType } from '../../../shared/tour-types';
 import { TourPanoramaPicker } from '../TourPanoramaPicker';
 import { api } from '../../lib/api';
 import { useI18n } from '../../lib/i18n-context';
@@ -18,6 +18,7 @@ export interface HotspotFormState {
   yaw: string;
   mediaUrl: string;
   mediaType: string;
+  icon: string;
 }
 
 export const emptyHotspotForm = (): HotspotFormState => ({
@@ -31,6 +32,7 @@ export const emptyHotspotForm = (): HotspotFormState => ({
   yaw: '0',
   mediaUrl: '',
   mediaType: '',
+  icon: '',
 });
 
 const TYPE_ICONS: Record<string, typeof Info> = {
@@ -60,6 +62,7 @@ interface TourHotspotEditorProps {
   onPick: (pitch: number, yaw: number) => void;
   uploading?: boolean;
   onUploadingChange?: (v: boolean) => void;
+  hidePicker?: boolean;
 }
 
 export function TourHotspotEditor({
@@ -72,6 +75,7 @@ export function TourHotspotEditor({
   onPick,
   uploading,
   onUploadingChange,
+  hidePicker = false,
 }: TourHotspotEditorProps) {
   const { t } = useI18n();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -119,15 +123,35 @@ export function TourHotspotEditor({
         </div>
       </div>
 
-      <TourPanoramaPicker
-        sceneId={scene.id}
-        sceneName={scene.name}
-        panoramaUrl={scene.panoramaUrl}
-        pitch={scene.pitch}
-        yaw={scene.yaw}
-        hfov={scene.hfov}
-        onPick={onPick}
-      />
+      {!hidePicker && (
+        <TourPanoramaPicker
+          sceneId={scene.id}
+          sceneName={scene.name}
+          panoramaUrl={scene.panoramaUrl}
+          pitch={scene.pitch}
+          yaw={scene.yaw}
+          hfov={scene.hfov}
+          onPick={onPick}
+        />
+      )}
+
+      {(needsScene || form.type === 'scene') && (
+        <div>
+          <label className="label">{t('tours.markerStyle')}</label>
+          <div className="grid grid-cols-4 gap-2">
+            {TOUR_MARKER_ICONS.map((icon) => (
+              <button
+                key={icon}
+                type="button"
+                onClick={() => set({ icon })}
+                className={`tour-type-chip text-xs ${form.icon === icon ? 'tour-type-chip--active' : ''}`}
+              >
+                {t(`tours.marker_${icon}` as 'tours.marker_door')}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div>

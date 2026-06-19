@@ -1,4 +1,4 @@
-import { hotspotIconClass, type TourHotspotPayload } from '../../shared/tour-types';
+import { hotspotMarkerClass, type TourHotspotPayload } from '../../shared/tour-types';
 
 export interface TourViewerSceneInput {
   id: string;
@@ -21,6 +21,7 @@ export function buildTourViewerConfig(
 
   for (const scene of scenes) {
     const hotSpots = scene.hotSpots.map((h) => {
+      const cssClass = `vizara-tour-hotspot ${hotspotMarkerClass(h.type, h.icon)}`;
       if (h.type === 'scene' && h.targetSceneId) {
         return {
           pitch: h.pitch,
@@ -28,7 +29,7 @@ export function buildTourViewerConfig(
           type: 'scene',
           text: h.title || h.text || '',
           sceneId: h.targetSceneId,
-          cssClass: `vizara-tour-hotspot ${hotspotIconClass('scene')}`,
+          cssClass,
         };
       }
 
@@ -37,7 +38,7 @@ export function buildTourViewerConfig(
         yaw: h.yaw,
         type: 'info',
         text: h.title || h.text || '',
-        cssClass: `vizara-tour-hotspot ${hotspotIconClass(h.type)}`,
+        cssClass,
         clickHandlerFunc: (_evt: MouseEvent, args: string) => onHotspotClick(args),
         clickHandlerArgs: h.id,
       };

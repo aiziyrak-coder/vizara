@@ -207,12 +207,29 @@ export const api = {
       pitch: number;
       yaw: number;
       hfov: number;
+      order: number;
       ambientAudioUrl: string | null;
     }>
   ) =>
     request<TourScene>(`/tours/${orgId}/${tourId}/scenes/${sceneId}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
+    }),
+
+  replaceTourScenePanorama: (orgId: string, tourId: string, sceneId: string, file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return request<TourScene>(`/tours/${orgId}/${tourId}/scenes/${sceneId}/panorama`, {
+      method: 'POST',
+      body: form,
+      headers: {},
+    });
+  },
+
+  reorderTourScenes: (orgId: string, tourId: string, sceneIds: string[]) =>
+    request<TourDetail>(`/tours/${orgId}/${tourId}/scenes/reorder`, {
+      method: 'PATCH',
+      body: JSON.stringify({ sceneIds }),
     }),
 
   uploadTourMedia: (orgId: string, tourId: string, file: File) => {
@@ -414,6 +431,7 @@ export interface TourHotspotInput {
   mediaUrl?: string;
   mediaType?: string;
   linkUrl?: string;
+  icon?: string;
   targetSceneId?: string;
 }
 

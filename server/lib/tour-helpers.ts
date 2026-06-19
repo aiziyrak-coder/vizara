@@ -1,7 +1,12 @@
 import path from 'path';
 import fs from 'fs';
 import { TOUR_MEDIA_DIR } from './paths.js';
-import { TOUR_HOTSPOT_TYPES, type TourHotspotType } from '../../shared/tour-types.js';
+import {
+  TOUR_HOTSPOT_TYPES,
+  TOUR_MARKER_ICONS,
+  type TourHotspotType,
+  type TourMarkerIcon,
+} from '../../shared/tour-types.js';
 
 const ALLOWED_MEDIA_EXT = [
   '.jpg', '.jpeg', '.png', '.webp', '.gif',
@@ -41,6 +46,11 @@ export function cleanupTourMedia(mediaUrl: string | null | undefined) {
 export function normalizeHotspotType(type: string): TourHotspotType {
   const t = type as TourHotspotType;
   return TOUR_HOTSPOT_TYPES.includes(t) ? t : 'info';
+}
+
+export function normalizeHotspotIcon(icon?: string | null): TourMarkerIcon | null {
+  if (!icon) return null;
+  return TOUR_MARKER_ICONS.includes(icon as TourMarkerIcon) ? (icon as TourMarkerIcon) : null;
 }
 
 export function serializeHotspot(h: {

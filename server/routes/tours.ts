@@ -9,6 +9,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import {
   hasActiveSubscription,
   checkTourLimit,
+  checkSceneLimit,
 } from '../middleware/subscription.js';
 import { getOrgPlanForProduct } from '../lib/plans.js';
 import { getAppUrl } from '../lib/app-url.js';
@@ -18,6 +19,7 @@ import {
   detectMediaType,
   isAllowedTourMedia,
   normalizeHotspotType,
+  normalizeHotspotIcon,
   resolveTourMediaPath,
   serializeHotspot,
   serializeScene,
@@ -95,15 +97,22 @@ async function getOrgForUser(orgId: string, userId: string) {
 }
 
 async function getTourForOrg(tourId: string, orgId: string) {
-  return prisma.virtualTour.findFirst({
+  const tour = await prisma.virtualTour.findFirst({
     where: { id: tourId, organizationId: orgId },
     include: {
       scenes: {
         orderBy: { order: 'asc' },
-        include: { hotspots: true },
+        include: {
+          hotspots: { orderBy: { order: 'asc' } },
+        },
       },
     },
   });
+  if (!tour) return null;
+  return {
+    ...tour,
+    scenes: tour.scenes.map(serializeScene),
+  };
 }
 
 router.get('/:orgId', requireAuth, async (req: AuthRequest, res) => {
@@ -396,6 +405,13 @@ router.post('/:orgId/:tourId/scenes', requireAuth, uploadRateLimit, (req: AuthRe
       return;
     }
 
+    const sceneLimit = await checkSceneLimit(org.id, tour._count.scenes);
+    if (!sceneLimit.ok) {
+      cleanupFile(uploadedPath);
+      res.status(403).json({ error: sceneLimit.message, code: 'PLAN_LIMIT' });
+      return;
+    }
+
     if (!req.file) {
       res.status(400).json({ error: 'Panorama fayli yuklanishi shart' });
       return;
@@ -421,10 +437,108 @@ router.post('/:orgId/:tourId/scenes', requireAuth, uploadRateLimit, (req: AuthRe
       });
     }
 
-    res.status(201).json(scene);
+    res.status(201).json(serializeScene({ ...scene, hotspots: [] }));
   } catch {
     cleanupFile(uploadedPath);
     res.status(500).json({ error: 'Sahna yaratishda xatolik' });
+  }
+});
+
+router.patch('/:orgId/:tourId/scenes/reorder', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const org = await getOrgForUser(req.params.orgId, req.userId!);
+    if (!org) {
+      res.status(404).json({ error: 'Tashkilot topilmadi' });
+      return;
+    }
+
+    const tour = await prisma.virtualTour.findFirst({
+      where: { id: req.params.tourId, organizationId: org.id },
+      include: { scenes: true },
+    });
+    if (!tour) {
+      res.status(404).json({ error: 'Virtual tur topilmadi' });
+      return;
+    }
+
+    const sceneIds = req.body.sceneIds as string[] | undefined;
+    if (!Array.isArray(sceneIds) || sceneIds.length !== tour.scenes.length) {
+      res.status(400).json({ error: 'Barcha sahna ID lari kerak' });
+      return;
+    }
+
+    const tourSceneIds = new Set(tour.scenes.map((s) => s.id));
+    if (!sceneIds.every((id) => tourSceneIds.has(id))) {
+      res.status(400).json({ error: 'Noto\'g\'ri sahna ro\'yxati' });
+      return;
+    }
+
+    await prisma.$transaction(
+      sceneIds.map((id, index) =>
+        prisma.tourScene.update({ where: { id }, data: { order: index } })
+      )
+    );
+
+    const updated = await getTourForOrg(tour.id, org.id);
+    res.json(updated);
+  } catch {
+    res.status(500).json({ error: 'Sahnalar tartibini yangilashda xatolik' });
+  }
+});
+
+router.post('/:orgId/:tourId/scenes/:sceneId/panorama', requireAuth, uploadRateLimit, (req: AuthRequest, res, next) => {
+  panoUpload.single('file')(req, res, (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+        res.status(400).json({ error: 'Fayl hajmi juda katta' });
+        return;
+      }
+      res.status(400).json({ error: err.message || 'Panorama yuklashda xatolik' });
+      return;
+    }
+    next();
+  });
+}, async (req: AuthRequest, res) => {
+  let uploadedPath: string | null = req.file?.path ?? null;
+  try {
+    const org = await getOrgForUser(req.params.orgId, req.userId!);
+    if (!org) {
+      cleanupFile(uploadedPath);
+      res.status(404).json({ error: 'Tashkilot topilmadi' });
+      return;
+    }
+
+    const scene = await prisma.tourScene.findFirst({
+      where: { id: req.params.sceneId, tour: { id: req.params.tourId, organizationId: org.id } },
+    });
+    if (!scene) {
+      cleanupFile(uploadedPath);
+      res.status(404).json({ error: 'Sahna topilmadi' });
+      return;
+    }
+
+    if (!req.file) {
+      res.status(400).json({ error: 'Panorama fayli yuklanishi shart' });
+      return;
+    }
+
+    const oldPath = resolvePanoramaPath(scene.panoramaUrl);
+    const panoramaUrl = `/uploads/panoramas/${req.file.filename}`;
+
+    const updated = await prisma.tourScene.update({
+      where: { id: scene.id },
+      data: { panoramaUrl },
+      include: { hotspots: { orderBy: { order: 'asc' } } },
+    });
+
+    if (oldPath && fs.existsSync(oldPath)) {
+      try { fs.unlinkSync(oldPath); } catch { /* ignore */ }
+    }
+
+    res.json(serializeScene(updated));
+  } catch {
+    cleanupFile(uploadedPath);
+    res.status(500).json({ error: 'Panoramani almashtirishda xatolik' });
   }
 });
 
@@ -627,6 +741,8 @@ router.post('/:orgId/:tourId/scenes/:sceneId/hotspots', requireAuth, async (req:
       return;
     }
 
+    const icon = normalizeHotspotIcon(req.body.icon ? String(req.body.icon) : null);
+
     const hotspot = await prisma.tourHotspot.create({
       data: {
         sceneId: scene.id,
@@ -639,6 +755,7 @@ router.post('/:orgId/:tourId/scenes/:sceneId/hotspots', requireAuth, async (req:
         mediaUrl,
         mediaType,
         linkUrl,
+        icon,
         targetSceneId: type === 'scene' ? (targetSceneId || null) : null,
         order: scene._count.hotspots,
       },
@@ -694,6 +811,9 @@ router.patch('/:orgId/:tourId/hotspots/:hotspotId', requireAuth, async (req: Aut
 
     if (req.body.mediaType !== undefined) {
       data.mediaType = req.body.mediaType || null;
+    }
+    if (req.body.icon !== undefined) {
+      data.icon = normalizeHotspotIcon(req.body.icon ? String(req.body.icon) : null);
     }
 
     const updated = await prisma.tourHotspot.update({

@@ -75,6 +75,24 @@ export async function checkExperienceType(
   return { ok: true };
 }
 
+export async function checkSceneLimit(
+  organizationId: string,
+  currentSceneCount: number,
+): Promise<{ ok: boolean; message?: string }> {
+  const { plan, active } = await getSubscriptionWithPlan(organizationId, 'vizara_tour');
+  if (!active) {
+    return { ok: false, message: 'VizaraTour obunasi talab qilinadi. Tarif rejasini tanlang.' };
+  }
+  if (plan.maxScenesPerTour === -1) return { ok: true };
+  if (currentSceneCount >= plan.maxScenesPerTour) {
+    return {
+      ok: false,
+      message: `VizaraTour ${plan.nameUz} tarifida har turda maksimal ${plan.maxScenesPerTour} ta sahna.`,
+    };
+  }
+  return { ok: true };
+}
+
 export async function checkTourLimit(organizationId: string): Promise<{ ok: boolean; message?: string }> {
   const { plan, active } = await getSubscriptionWithPlan(organizationId, 'vizara_tour');
   if (!active) {
