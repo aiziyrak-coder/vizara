@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  password      String
+  name          String
+  createdAt     DateTime       @default(now())
+  organizations Organization[]
+}
+
+model Organization {
+  id           String        @id @default(cuid())
+  name         String
+  slug         String        @unique
+  description  String?
+  logoUrl      String?
+  brandColor   String        @default("#0d9488")
+  website      String?
+  ownerId      String
+  owner        User          @relation(fields: [ownerId], references: [id])
+  createdAt    DateTime      @default(now())
+  models       Model3D[]
+  experiences  Experience[]
+  subscription Subscription?
+}
+
+model Model3D {
+  id             String       @id @default(cuid())
+  name           String
+  fileUrl        String
+  fileSize       Int
+  mimeType       String       @default("model/gltf-binary")
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+}
+
+model Experience {
+  id             String       @id @default(cuid())
+  name           String
+  slug           String
+  type           String       @default("model_ar")
+  modelId        String?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  qrCodeUrl      String?
+  isActive       Boolean      @default(true)
+  config         String?
+  createdAt      DateTime     @default(now())
+
+  @@unique([organizationId, slug])
+}
+
+model Subscription {
+  id                   String       @id @default(cuid())
+  organizationId       String       @unique
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  planId               String       @default("starter")
+  status               String       @default("inactive")
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime     @default(now())
+}
+
+model StripeWebhookEvent {
+  id          String   @id
+  type        String
+  processedAt DateTime @default(now())
+}

@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+dist-server/
+build/
+coverage/
+
+# Data & uploads (persist via Docker volumes in production)
+uploads/
+data/
+prisma/dev.db
+prisma/dev.db-journal
+prisma/*.db
+prisma/*.db-journal
+
+# OS & logs
+.DS_Store
+*.log
+
+# Env
+.env*
+!.env.example

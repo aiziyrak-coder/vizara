@@ -1,0 +1,6 @@
+{
+  "name": "Vizara",
+  "description": "Universal WebAR SaaS platforma — tashkilotlar 3D modellar yuklab, QR generatsiya qilib WebAR tajribalar yaratadi. Oylik $5 obuna.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
