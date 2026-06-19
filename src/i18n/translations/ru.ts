@@ -53,6 +53,9 @@ export const ru: TranslationSchema = {
   },
   landing: {
     badge: 'Платформа иммерсивных цифровых решений',
+    navHome: 'Главная',
+    navSections: 'Разделы',
+    backToTop: 'Наверх',
     platformTitle: 'Vizara — AR и Virtual Tour',
     platformDesc: 'Два продукта, одна платформа. 3D WebAR или 360° виртуальные туры — в браузере, без приложения.',
     productArName: 'VizaraAR',

@@ -53,6 +53,9 @@ export const uzCyrl: TranslationSchema = {
   },
   landing: {
     badge: 'Иммерсив рақамли тажрибалар платформаси',
+    navHome: 'Бош саҳифа',
+    navSections: 'Бўлимлар',
+    backToTop: 'Юқорига',
     platformTitle: 'Vizara — AR ва Virtual Tour',
     platformDesc: 'Икки маҳсулот, битта платформа. 3D WebAR ёки биноларни 360° virtual сайоҳат — браузерда, иловасиз.',
     productArName: 'VizaraAR',

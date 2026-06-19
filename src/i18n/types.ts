@@ -48,6 +48,9 @@ export interface TranslationSchema {
   };
   landing: {
     badge: string;
+    navHome: string;
+    navSections: string;
+    backToTop: string;
     heroTitle: string;
     heroTitleHighlight: string;
     heroDesc: string;

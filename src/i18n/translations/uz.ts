@@ -53,6 +53,9 @@ export const uz: TranslationSchema = {
   },
   landing: {
     badge: 'Immersiv raqamli tajribalar platformasi',
+    navHome: 'Bosh sahifa',
+    navSections: 'Bo\'limlar',
+    backToTop: 'Yuqoriga',
     platformTitle: 'Vizara — AR va Virtual Tour',
     platformDesc: 'Ikki mahsulot, bitta platforma. 3D WebAR yoki binolarni 360° virtual sayohat — brauzerda, ilovasiz.',
     productArName: 'VizaraAR',

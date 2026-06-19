@@ -53,6 +53,9 @@ export const en: TranslationSchema = {
   },
   landing: {
     badge: 'Immersive digital experiences platform',
+    navHome: 'Home',
+    navSections: 'Sections',
+    backToTop: 'Back to top',
     platformTitle: 'Vizara — AR & Virtual Tour',
     platformDesc: 'Two products, one platform. 3D WebAR or 360° virtual building tours — in the browser, no app.',
     productArName: 'VizaraAR',
