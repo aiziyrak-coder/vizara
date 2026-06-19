@@ -4,6 +4,7 @@ import {
   Box, QrCode, Globe, ArrowRight, Check, Menu, X,
   Upload, Smartphone, Camera, Palette, LayoutDashboard, ChevronDown,
   Building2, PartyPopper, ShoppingBag, GraduationCap, XCircle,
+  Map, Navigation, Hotel, Link2,
 } from 'lucide-react';
 import { PricingCards } from '../components/PricingCards';
 import { PageShell } from '../components/FuturisticBg';
@@ -41,10 +42,28 @@ export function Landing() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   const navLinks = [
-    { href: '#how', label: t('nav.howItWorks') },
-    { href: '#features', label: t('nav.features') },
+    { href: '#vizara-ar', label: 'VizaraAR' },
+    { href: '#vizara-tour', label: 'VizaraTour' },
     { href: '#pricing', label: t('nav.pricing') },
     { href: '#faq', label: t('nav.faq') },
+  ];
+
+  const tourSteps = [
+    { n: '01', title: t('landing.tourStep1Title'), desc: t('landing.tourStep1Desc'), icon: Map },
+    { n: '02', title: t('landing.tourStep2Title'), desc: t('landing.tourStep2Desc'), icon: Upload },
+    { n: '03', title: t('landing.tourStep3Title'), desc: t('landing.tourStep3Desc'), icon: Link2 },
+  ];
+
+  const tourFeatures = [
+    { icon: Navigation, title: t('landing.tourFeat1Title'), desc: t('landing.tourFeat1Desc') },
+    { icon: Map, title: t('landing.tourFeat2Title'), desc: t('landing.tourFeat2Desc') },
+    { icon: QrCode, title: t('landing.tourFeat3Title'), desc: t('landing.tourFeat3Desc') },
+  ];
+
+  const tourUseCases = [
+    { icon: Building2, title: t('landing.tourUse1Title'), desc: t('landing.tourUse1Desc') },
+    { icon: Hotel, title: t('landing.tourUse2Title'), desc: t('landing.tourUse2Desc') },
+    { icon: GraduationCap, title: t('landing.tourUse3Title'), desc: t('landing.tourUse3Desc') },
   ];
 
   const stats = [
@@ -146,25 +165,52 @@ export function Landing() {
 
       <section className="landing-hero-bg landing-section pt-10 sm:pt-14 pb-6">
         <div className="container">
-          <div className="grid lg:grid-cols-2 gap-8 sm:gap-10 lg:gap-16 items-center">
-            <div className="order-1 min-w-0">
-              <div className="inline-flex items-center gap-2 badge mb-4 sm:mb-5 max-w-full">
-                <span className="w-1.5 h-1.5 rounded-full shrink-0 animate-pulse" style={{ background: 'var(--brand)' }} />
-                <span className="leading-snug">{t('landing.badge')}</span>
-              </div>
-              <h1 className="landing-hero-title font-bold tracking-tight mb-4 sm:mb-5">
+          <div className="max-w-3xl mx-auto text-center mb-8 sm:mb-10">
+            <div className="inline-flex items-center gap-2 badge mb-4 max-w-full mx-auto">
+              <span className="w-1.5 h-1.5 rounded-full shrink-0 animate-pulse" style={{ background: 'var(--brand)' }} />
+              <span className="leading-snug">{t('landing.badge')}</span>
+            </div>
+            <h1 className="landing-hero-title font-bold tracking-tight mb-4">{t('landing.platformTitle')}</h1>
+            <p className="text-[15px] sm:text-lg text-secondary leading-relaxed max-w-2xl mx-auto">{t('landing.platformDesc')}</p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 max-w-4xl mx-auto">
+            <button type="button" onClick={() => scrollTo('#vizara-ar')} className="product-card product-card-ar text-left">
+              <div className="product-card-icon"><Box className="w-6 h-6" /></div>
+              <p className="product-card-name">{t('landing.productArName')}</p>
+              <p className="product-card-tag">{t('landing.productArTag')}</p>
+              <p className="product-card-desc">{t('landing.productArDesc')}</p>
+              <span className="product-card-cta">{t('landing.productArCta')} <ArrowRight className="w-4 h-4" /></span>
+            </button>
+            <button type="button" onClick={() => scrollTo('#vizara-tour')} className="product-card product-card-tour text-left">
+              <div className="product-card-icon product-card-icon-tour"><Map className="w-6 h-6" /></div>
+              <p className="product-card-name">{t('landing.productTourName')}</p>
+              <p className="product-card-tag">{t('landing.productTourTag')}</p>
+              <p className="product-card-desc">{t('landing.productTourDesc')}</p>
+              <span className="product-card-cta">{t('landing.productTourCta')} <ArrowRight className="w-4 h-4" /></span>
+            </button>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8 mb-4">
+            <Link to={user ? '/dashboard' : '/register'} className="btn btn-primary w-full sm:w-auto text-[15px] px-7">
+              {user ? t('landing.ctaDashboard') : t('landing.ctaStart')}<ArrowRight className="w-4 h-4" />
+            </Link>
+            <button type="button" onClick={() => scrollTo('#pricing')} className="btn btn-secondary w-full sm:w-auto text-[15px]">{t('landing.ctaViewPlans')}</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="vizara-ar" className="scroll-mt-20">
+      <section className="landing-section glass-section pt-8">
+        <div className="container">
+          <div className="grid lg:grid-cols-2 gap-8 items-center">
+            <div>
+              <p className="text-sm font-semibold text-[var(--brand)] mb-2">{t('landing.arSectionTitle')}</p>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">
                 {t('landing.heroTitle')}{' '}
                 <span className="text-gradient">{t('landing.heroTitleHighlight')}</span>
-              </h1>
-              <p className="text-[15px] sm:text-lg text-secondary leading-relaxed mb-6 sm:mb-7 max-w-lg">
-                {t('landing.heroDesc')}
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 mb-8">
-                <Link to={user ? '/dashboard' : '/register'} className="btn btn-primary w-full sm:w-auto text-[15px] px-7">
-                  {user ? t('landing.ctaDashboard') : t('landing.ctaStart')}<ArrowRight className="w-4 h-4" />
-                </Link>
-                <button type="button" onClick={() => scrollTo('#how')} className="btn btn-secondary w-full sm:w-auto text-[15px]">{t('landing.ctaHow')}</button>
-              </div>
+              </h2>
+              <p className="text-secondary leading-relaxed mb-5">{t('landing.heroDesc')}</p>
               <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {chips.map((chip) => (
                   <span key={chip} className="glass-chip max-w-full">
@@ -174,13 +220,12 @@ export function Landing() {
                 ))}
               </div>
             </div>
-            <div className="order-2 flex justify-center lg:justify-end mt-2 lg:mt-0">
+            <div className="flex justify-center lg:justify-end">
               <PhoneMockup brand={t('landing.phoneBrand')} subtitle={t('landing.phoneSubtitle')} />
             </div>
           </div>
         </div>
       </section>
-
       <section className="glass-section">
         <div className="container py-6 sm:py-8">
           <div className="grid grid-cols-3 gap-1 sm:gap-6">
@@ -252,6 +297,41 @@ export function Landing() {
             {useCases.map(({ icon: Icon, title, desc }) => (
               <div key={title} className="use-case-card">
                 <Icon className="w-6 h-6 mb-3" style={{ color: 'var(--brand)' }} />
+                <h3 className="font-semibold mb-1.5 text-sm">{title}</h3>
+                <p className="text-xs text-secondary leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+      </section>
+
+      <section id="vizara-tour" className="landing-section scroll-mt-20 glass-section">
+        <div className="container">
+          <SectionHeader eyebrow={t('landing.tourSectionEyebrow')} title={t('landing.tourSectionTitle')} description={t('landing.tourSectionDesc')} />
+          <div className="grid gap-4 sm:grid-cols-3 mb-10">
+            {tourSteps.map(({ n, title, desc, icon: Icon }) => (
+              <div key={n} className="card-elevated p-6 relative">
+                <span className="text-4xl font-bold absolute top-4 right-5 select-none" style={{ color: 'rgba(99,102,241,0.12)' }}>{n}</span>
+                <div className="icon-glass w-11 h-11 mb-4 product-card-icon-tour !bg-indigo-500"><Icon className="w-5 h-5 text-white" /></div>
+                <h3 className="font-bold mb-2">{title}</h3>
+                <p className="text-sm text-secondary leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3 mb-10">
+            {tourFeatures.map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="card card-hover p-5 sm:p-6">
+                <div className="icon-glass w-10 h-10 mb-4 product-card-icon-tour !bg-indigo-500"><Icon className="w-5 h-5 text-white" /></div>
+                <h3 className="font-semibold mb-2">{title}</h3>
+                <p className="text-sm text-secondary leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {tourUseCases.map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="use-case-card">
+                <Icon className="w-6 h-6 mb-3" style={{ color: '#6366f1' }} />
                 <h3 className="font-semibold mb-1.5 text-sm">{title}</h3>
                 <p className="text-xs text-secondary leading-relaxed">{desc}</p>
               </div>

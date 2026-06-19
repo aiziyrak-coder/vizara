@@ -14,6 +14,9 @@ import { Experiences } from './pages/Experiences';
 import { Billing } from './pages/Billing';
 import { Settings } from './pages/Settings';
 import { PublicAR } from './pages/PublicAR';
+import { PublicTour } from './pages/PublicTour';
+import { Tours } from './pages/Tours';
+import { TourEditor } from './pages/TourEditor';
 import { NotFound } from './pages/NotFound';
 
 export default function App() {
@@ -28,10 +31,13 @@ export default function App() {
             <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
             <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
             <Route path="/ar/:orgSlug/:expSlug" element={<PublicAR />} />
+            <Route path="/tour/:orgSlug/:tourSlug" element={<PublicTour />} />
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<Dashboard />} />
               <Route path="models" element={<Models />} />
               <Route path="experiences" element={<Experiences />} />
+              <Route path="tours" element={<Tours />} />
+              <Route path="tours/:tourId" element={<TourEditor />} />
               <Route path="billing" element={<Billing />} />
               <Route path="settings" element={<Settings />} />
             </Route>

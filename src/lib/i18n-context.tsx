@@ -82,6 +82,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
       const items: string[] = [
         interpolate(f.models, { count: formatLimit(plan.maxModels, ul) }),
         interpolate(f.experiences, { count: formatLimit(plan.maxExperiences, ul) }),
+        interpolate(f.tours, { count: formatLimit(plan.maxTours, ul) }),
         f.qr,
         plan.maxFileSizeMB === -1
           ? f.fileSizeUnlimited
@@ -89,6 +90,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
       ];
       if (plan.features.photoZone) items.push(f.photoZone);
       if (plan.features.modelAR) items.push(f.modelAR);
+      if (plan.features.virtualTour) items.push(f.virtualTour);
       if (plan.features.customBranding) items.push(f.branding);
       if (plan.features.customLogo) items.push(f.logo);
       if (plan.features.analytics) items.push(f.analytics);

@@ -36,6 +36,7 @@ router.get('/status/:orgId', requireAuth, async (req: AuthRequest, res) => {
     const plan = getPlan(org.subscription?.planId);
     const modelCount = await prisma.model3D.count({ where: { organizationId: org.id } });
     const experienceCount = await prisma.experience.count({ where: { organizationId: org.id } });
+    const tourCount = await prisma.virtualTour.count({ where: { organizationId: org.id } });
     const subscriptionActive = await hasActiveSubscription(org.id);
 
     res.json({
@@ -45,7 +46,7 @@ router.get('/status/:orgId', requireAuth, async (req: AuthRequest, res) => {
         ...plan,
         featureList: getPlanFeatureList(plan),
       },
-      usage: { models: modelCount, experiences: experienceCount },
+      usage: { models: modelCount, experiences: experienceCount, tours: tourCount },
       stripeConfigured: isStripeConfigured(),
       demoMode: isDemoBillingAllowed(),
     });

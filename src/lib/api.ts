@@ -149,6 +149,69 @@ export const api = {
       `/experiences/public/${encodeURIComponent(orgSlug)}/${encodeURIComponent(expSlug)}`
     ),
 
+  getTours: (orgId: string) =>
+    request<VirtualTour[]>(`/tours/${orgId}`),
+
+  createTour: (orgId: string, data: { name: string; description?: string }) =>
+    request<VirtualTour & { tourUrl: string }>(`/tours/${orgId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  getTour: (orgId: string, tourId: string) =>
+    request<TourDetail & { tourUrl: string }>(`/tours/${orgId}/${tourId}`),
+
+  updateTour: (orgId: string, tourId: string, data: Partial<{ name: string; description: string; startSceneId: string | null; isActive: boolean }>) =>
+    request<TourDetail>(`/tours/${orgId}/${tourId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  deleteTour: (orgId: string, tourId: string) =>
+    request<{ success: boolean }>(`/tours/${orgId}/${tourId}`, { method: 'DELETE' }),
+
+  regenerateTourQR: (orgId: string, tourId: string) =>
+    request<VirtualTour & { tourUrl: string }>(`/tours/${orgId}/${tourId}/regenerate-qr`, {
+      method: 'POST',
+    }),
+
+  uploadTourScene: (orgId: string, tourId: string, name: string, file: File) => {
+    const form = new FormData();
+    form.append('name', name);
+    form.append('file', file);
+    return request<TourScene>(`/tours/${orgId}/${tourId}/scenes`, {
+      method: 'POST',
+      body: form,
+      headers: {},
+    });
+  },
+
+  deleteTourScene: (orgId: string, tourId: string, sceneId: string) =>
+    request<{ success: boolean }>(`/tours/${orgId}/${tourId}/scenes/${sceneId}`, {
+      method: 'DELETE',
+    }),
+
+  createTourHotspot: (
+    orgId: string,
+    tourId: string,
+    sceneId: string,
+    data: { type?: string; pitch?: number; yaw?: number; text?: string; targetSceneId?: string }
+  ) =>
+    request<TourHotspot>(`/tours/${orgId}/${tourId}/scenes/${sceneId}/hotspots`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  deleteTourHotspot: (orgId: string, tourId: string, hotspotId: string) =>
+    request<{ success: boolean }>(`/tours/${orgId}/${tourId}/hotspots/${hotspotId}`, {
+      method: 'DELETE',
+    }),
+
+  getPublicTour: (orgSlug: string, tourSlug: string) =>
+    request<PublicTourData>(
+      `/tours/public/${encodeURIComponent(orgSlug)}/${encodeURIComponent(tourSlug)}`
+    ),
+
   getBillingStatus: (orgId: string) =>
     request<BillingStatus>(`/billing/status/${orgId}`),
 
@@ -184,6 +247,7 @@ export interface Subscription {
 export interface PlanFeatures {
   photoZone: boolean;
   modelAR: boolean;
+  virtualTour: boolean;
   customBranding: boolean;
   customLogo: boolean;
   whiteLabel: boolean;
@@ -200,6 +264,7 @@ export interface PlanInfo {
   description: string;
   maxModels: number;
   maxExperiences: number;
+  maxTours: number;
   maxFileSizeMB: number;
   features: PlanFeatures;
   featureList?: string[];
@@ -261,9 +326,69 @@ export interface BillingStatus {
   subscription: Subscription | null;
   subscriptionActive: boolean;
   plan: PlanInfo;
-  usage: { models: number; experiences: number };
+  usage: { models: number; experiences: number; tours: number };
   stripeConfigured: boolean;
   demoMode: boolean;
+}
+
+export interface VirtualTour {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  startSceneId?: string | null;
+  coverUrl?: string | null;
+  qrCodeUrl?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  tourUrl?: string;
+  _count?: { scenes: number };
+}
+
+export interface TourScene {
+  id: string;
+  name: string;
+  panoramaUrl: string;
+  pitch: number;
+  yaw: number;
+  hfov: number;
+  order: number;
+  tourId: string;
+  hotspots: TourHotspot[];
+  createdAt: string;
+}
+
+export interface TourHotspot {
+  id: string;
+  sceneId: string;
+  type: string;
+  pitch: number;
+  yaw: number;
+  text?: string | null;
+  targetSceneId?: string | null;
+  createdAt: string;
+}
+
+export interface TourDetail extends VirtualTour {
+  scenes: TourScene[];
+}
+
+export interface PublicTourData {
+  tour: {
+    id: string;
+    name: string;
+    description?: string | null;
+    startSceneId: string;
+  };
+  organization: {
+    name: string;
+    slug: string;
+    brandColor: string;
+    logoUrl?: string;
+    website?: string;
+  };
+  scenes: TourScene[];
+  plan?: { id: string; name: string; whiteLabel: boolean };
 }
 
 export { ApiError };

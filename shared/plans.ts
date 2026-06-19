@@ -3,6 +3,7 @@ export type PlanId = 'starter' | 'business' | 'pro' | 'enterprise';
 export interface PlanFeatures {
   photoZone: boolean;
   modelAR: boolean;
+  virtualTour: boolean;
   customBranding: boolean;
   customLogo: boolean;
   whiteLabel: boolean;
@@ -19,6 +20,7 @@ export interface Plan {
   description: string;
   maxModels: number;
   maxExperiences: number;
+  maxTours: number;
   maxFileSizeMB: number;
   features: PlanFeatures;
   highlight?: boolean;
@@ -34,11 +36,13 @@ export const PLANS: Record<PlanId, Plan> = {
     description: 'Kichik loyihalar va sinov uchun',
     maxModels: 3,
     maxExperiences: 5,
+    maxTours: 0,
     maxFileSizeMB: -1,
     stripePriceEnvKey: 'STRIPE_PRICE_STARTER',
     features: {
       photoZone: true,
       modelAR: false,
+      virtualTour: false,
       customBranding: false,
       customLogo: false,
       whiteLabel: false,
@@ -55,11 +59,13 @@ export const PLANS: Record<PlanId, Plan> = {
     description: 'O\'rta hajmdagi tashkilotlar uchun',
     maxModels: 10,
     maxExperiences: 20,
+    maxTours: 5,
     maxFileSizeMB: -1,
     stripePriceEnvKey: 'STRIPE_PRICE_BUSINESS',
     features: {
       photoZone: true,
       modelAR: true,
+      virtualTour: true,
       customBranding: true,
       customLogo: false,
       whiteLabel: false,
@@ -76,12 +82,14 @@ export const PLANS: Record<PlanId, Plan> = {
     description: 'Faol marketing va tadbirlar uchun',
     maxModels: 20,
     maxExperiences: 50,
+    maxTours: 20,
     maxFileSizeMB: -1,
     highlight: true,
     stripePriceEnvKey: 'STRIPE_PRICE_PRO',
     features: {
       photoZone: true,
       modelAR: true,
+      virtualTour: true,
       customBranding: true,
       customLogo: true,
       whiteLabel: false,
@@ -98,11 +106,13 @@ export const PLANS: Record<PlanId, Plan> = {
     description: 'Katta tashkilotlar va agentliklar uchun',
     maxModels: -1,
     maxExperiences: -1,
+    maxTours: -1,
     maxFileSizeMB: -1,
     stripePriceEnvKey: 'STRIPE_PRICE_ENTERPRISE',
     features: {
       photoZone: true,
       modelAR: true,
+      virtualTour: true,
       customBranding: true,
       customLogo: true,
       whiteLabel: true,
@@ -136,12 +146,14 @@ export function getPlanFeatureList(plan: Plan): string[] {
   const items: string[] = [
     `${formatLimit(plan.maxModels)} 3D model`,
     `${formatLimit(plan.maxExperiences)} AR tajriba`,
+    `${formatLimit(plan.maxTours)} virtual tur`,
     `QR kod generatsiya`,
     formatFileSizeLimit(plan.maxFileSizeMB),
   ];
 
   if (plan.features.photoZone) items.push('Foto zona rejimi');
   if (plan.features.modelAR) items.push('3D Model WebAR');
+  if (plan.features.virtualTour) items.push('Virtual Tour (360°)');
   if (plan.features.customBranding) items.push('Brend rangi sozlash');
   if (plan.features.customLogo) items.push('Logo yuklash');
   if (plan.features.analytics) items.push('Statistika paneli');

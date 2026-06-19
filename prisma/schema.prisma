@@ -29,6 +29,7 @@ model Organization {
   createdAt    DateTime      @default(now())
   models       Model3D[]
   experiences  Experience[]
+  virtualTours VirtualTour[]
   subscription Subscription?
 }
 
@@ -57,6 +58,49 @@ model Experience {
   createdAt      DateTime     @default(now())
 
   @@unique([organizationId, slug])
+}
+
+model VirtualTour {
+  id             String       @id @default(cuid())
+  name           String
+  slug           String
+  description    String?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  startSceneId   String?
+  coverUrl       String?
+  qrCodeUrl      String?
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  scenes         TourScene[]
+
+  @@unique([organizationId, slug])
+}
+
+model TourScene {
+  id          String        @id @default(cuid())
+  name        String
+  panoramaUrl String
+  pitch       Float         @default(0)
+  yaw         Float         @default(0)
+  hfov        Float         @default(100)
+  order       Int           @default(0)
+  tourId      String
+  tour        VirtualTour   @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  hotspots    TourHotspot[]
+  createdAt   DateTime      @default(now())
+}
+
+model TourHotspot {
+  id            String    @id @default(cuid())
+  sceneId       String
+  scene         TourScene @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  type          String    @default("scene")
+  pitch         Float
+  yaw           Float
+  text          String?
+  targetSceneId String?
+  createdAt     DateTime  @default(now())
 }
 
 model Subscription {

@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { useI18n } from '../lib/i18n-context';
 import { isSubscriptionActive } from '../lib/subscription';
-import { LayoutDashboard, Box, QrCode, CreditCard, LogOut, Menu, X, Settings, Home } from 'lucide-react';
+import { LayoutDashboard, Box, QrCode, CreditCard, LogOut, Menu, X, Settings, Home, Map } from 'lucide-react';
 import { AppBackground } from './FuturisticBg';
 import { LogoLink } from './Logo';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -18,6 +18,7 @@ export function DashboardLayout() {
     { to: '/dashboard', labelKey: 'nav.control', shortLabelKey: 'nav.control', icon: LayoutDashboard, end: true },
     { to: '/dashboard/models', labelKey: 'nav.modelsFull', shortLabelKey: 'nav.models', icon: Box },
     { to: '/dashboard/experiences', labelKey: 'nav.experiences', shortLabelKey: 'nav.experiences', icon: QrCode },
+    { to: '/dashboard/tours', labelKey: 'nav.tours', shortLabelKey: 'nav.tours', icon: Map },
     { to: '/dashboard/billing', labelKey: 'nav.billing', shortLabelKey: 'nav.billing', icon: CreditCard },
     { to: '/dashboard/settings', labelKey: 'nav.settings', shortLabelKey: 'nav.settings', icon: Settings },
   ];
@@ -26,6 +27,7 @@ export function DashboardLayout() {
     '/dashboard': 'nav.control',
     '/dashboard/models': 'nav.modelsFull',
     '/dashboard/experiences': 'nav.experiences',
+    '/dashboard/tours': 'nav.tours',
     '/dashboard/billing': 'nav.billing',
     '/dashboard/settings': 'nav.settings',
   };
@@ -49,7 +51,9 @@ export function DashboardLayout() {
   if (!user) return <Navigate to="/login" replace />;
 
   const subActive = isSubscriptionActive(currentOrg?.subscription);
-  const pageTitle = t(pageTitleKeys[location.pathname] || 'nav.control');
+  const pageTitle = location.pathname.startsWith('/dashboard/tours/')
+    ? t('tours.edit')
+    : t(pageTitleKeys[location.pathname] || 'nav.control');
 
   return (
     <div className="min-h-app flex flex-col lg:flex-row overflow-x-hidden">

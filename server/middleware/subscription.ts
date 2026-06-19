@@ -81,6 +81,29 @@ export async function checkExperienceType(
   return { ok: true };
 }
 
+export async function checkTourLimit(organizationId: string): Promise<{ ok: boolean; message?: string }> {
+  const { plan, active } = await getSubscriptionWithPlan(organizationId);
+  if (!active) {
+    return { ok: false, message: 'Faol obuna talab qilinadi. Tarif rejasini tanlang.' };
+  }
+  if (!plan.features.virtualTour) {
+    return {
+      ok: false,
+      message: `Virtual Tour faqat Business va yuqori tariflarda mavjud. Hozirgi tarif: ${plan.nameUz}.`,
+    };
+  }
+  if (plan.maxTours === -1) return { ok: true };
+
+  const count = await prisma.virtualTour.count({ where: { organizationId } });
+  if (count >= plan.maxTours) {
+    return {
+      ok: false,
+      message: `${plan.nameUz} tarifida maksimal ${plan.maxTours} ta virtual tur. Yuqori tarifga o'ting.`,
+    };
+  }
+  return { ok: true };
+}
+
 export async function getMaxFileSizeBytes(organizationId: string): Promise<number> {
   const plan = await getOrgPlan(organizationId);
   if (plan.maxFileSizeMB === -1) return Infinity;
