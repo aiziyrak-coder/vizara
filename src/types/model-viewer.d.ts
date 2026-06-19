@@ -8,6 +8,8 @@ declare module 'react' {
           src?: string;
           ar?: boolean;
           'ar-modes'?: string;
+          'ar-scale'?: string;
+          'ar-placement'?: string;
           'camera-controls'?: boolean;
           'touch-action'?: string;
           alt?: string;
@@ -19,6 +21,8 @@ declare module 'react' {
           'environment-image'?: string;
           'skybox-image'?: string;
           'tone-mapping'?: string;
+          'interaction-prompt'?: string;
+          crossorigin?: string;
           poster?: string;
         },
         HTMLElement

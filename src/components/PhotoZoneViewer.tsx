@@ -4,6 +4,7 @@ import { useCamera } from '../hooks/useCamera';
 import { takeSnapshot } from '../utils/capture';
 import { Preloader } from './Preloader';
 import { OverlayFrame } from './OverlayFrame';
+import { ARModelStage } from './ARModelStage';
 import { FacingMode, OverlayConfig } from '../types';
 import { useI18n } from '../lib/i18n-context';
 
@@ -11,11 +12,12 @@ interface PhotoZoneViewerProps {
   organization: { name: string; brandColor: string; website?: string };
   config?: Record<string, string>;
   whiteLabel?: boolean;
+  model?: { fileUrl: string; name: string };
 }
 
-export function PhotoZoneViewer({ organization, config, whiteLabel }: PhotoZoneViewerProps) {
+export function PhotoZoneViewer({ organization, config, whiteLabel, model }: PhotoZoneViewerProps) {
   const { t } = useI18n();
-  const [facingMode, setFacingMode] = useState<FacingMode>('user');
+  const [facingMode, setFacingMode] = useState<FacingMode>('environment');
   const { videoRef, error, isLoading, retry } = useCamera(facingMode);
   const [captureMsg, setCaptureMsg] = useState('');
 
@@ -40,7 +42,7 @@ export function PhotoZoneViewer({ organization, config, whiteLabel }: PhotoZoneV
   };
 
   return (
-    <div className="relative w-full h-app overflow-hidden bg-black safe-top">
+    <div className="ar-camera-root safe-top">
       {isLoading && <Preloader label={t('ar.cameraLoading')} />}
 
       {error && (
@@ -59,18 +61,20 @@ export function PhotoZoneViewer({ organization, config, whiteLabel }: PhotoZoneV
         autoPlay
         playsInline
         muted
-        className={`absolute inset-0 w-full h-full object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
+        className={`ar-camera-video ${facingMode === 'user' ? 'ar-camera-mirror' : ''}`}
       />
 
-      <OverlayFrame config={overlayConfig} />
+      {model && <ARModelStage fileUrl={model.fileUrl} name={model.name} showArButton />}
+
+      <OverlayFrame config={overlayConfig} showCenterGuide={!model} />
 
       {captureMsg && (
-        <div className="absolute top-[max(1rem,env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-30 toast-glass text-sm px-5 py-2.5 font-medium max-w-[90vw] text-center">
+        <div className="ar-camera-toast toast-glass text-sm px-5 py-2.5 font-medium max-w-[90vw] text-center">
           {captureMsg}
         </div>
       )}
 
-      <div className="absolute bottom-0 inset-x-0 z-20 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] safe-x">
+      <footer className="ar-camera-dock safe-x">
         <div className="camera-dock max-w-sm mx-auto px-4 py-3 flex items-center justify-between">
           <button
             onClick={() => setFacingMode((p) => (p === 'user' ? 'environment' : 'user'))}
@@ -90,7 +94,7 @@ export function PhotoZoneViewer({ organization, config, whiteLabel }: PhotoZoneV
 
           <div className="w-11 h-11" aria-hidden="true" />
         </div>
-      </div>
+      </footer>
     </div>
   );
 }

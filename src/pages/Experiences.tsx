@@ -60,7 +60,7 @@ export function Experiences() {
       await api.createExperience(currentOrg.id, {
         name: form.name,
         type: form.type,
-        modelId: form.type === 'model_ar' ? form.modelId : undefined,
+        modelId: form.modelId || undefined,
         config: form.type === 'photo_zone' ? {
           title: currentOrg.name,
           website: currentOrg.website || 'vizara.app',
@@ -190,10 +190,15 @@ export function Experiences() {
               </p>
             )}
           </div>
-          {form.type === 'model_ar' && (
+          {(form.type === 'model_ar' || (form.type === 'photo_zone' && canUseModelAR)) && (
             <div>
               <label className="label">{t('experiences.model')}</label>
-              <select value={form.modelId} onChange={(e) => setForm({ ...form, modelId: e.target.value })} required className="input">
+              <select
+                value={form.modelId}
+                onChange={(e) => setForm({ ...form, modelId: e.target.value })}
+                required={form.type === 'model_ar'}
+                className="input"
+              >
                 <option value="">{t('experiences.selectModel')}</option>
                 {models.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>

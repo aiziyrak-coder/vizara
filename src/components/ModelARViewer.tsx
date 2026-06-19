@@ -1,8 +1,11 @@
-import { useEffect, useRef } from 'react';
-import { Box } from 'lucide-react';
-import { Logo } from './Logo';
+import { useState } from 'react';
+import { SwitchCamera, AlertCircle, Box } from 'lucide-react';
+import { useCamera } from '../hooks/useCamera';
+import { Preloader } from './Preloader';
+import { OverlayFrame } from './OverlayFrame';
+import { ARModelStage } from './ARModelStage';
+import { FacingMode, OverlayConfig } from '../types';
 import { useI18n } from '../lib/i18n-context';
-import { resolveUploadUrl } from '../lib/assets';
 
 interface ModelARViewerProps {
   organization: { name: string; brandColor: string; website?: string };
@@ -13,18 +16,8 @@ interface ModelARViewerProps {
 
 export function ModelARViewer({ organization, model, experienceName, whiteLabel }: ModelARViewerProps) {
   const { t } = useI18n();
-  const scriptLoaded = useRef(false);
-
-  useEffect(() => {
-    if (scriptLoaded.current) return;
-    if (document.querySelector('script[data-model-viewer]')) { scriptLoaded.current = true; return; }
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js';
-    script.setAttribute('data-model-viewer', 'true');
-    document.head.appendChild(script);
-    scriptLoaded.current = true;
-  }, []);
+  const [facingMode, setFacingMode] = useState<FacingMode>('environment');
+  const { videoRef, error, isLoading, retry } = useCamera(facingMode);
 
   if (!model) {
     return (
@@ -34,56 +27,60 @@ export function ModelARViewer({ organization, model, experienceName, whiteLabel 
     );
   }
 
-  const brand = organization.brandColor || '#1ba39c';
+  const overlayConfig: OverlayConfig = {
+    title: organization.name,
+    subtitle: experienceName,
+    website: organization.website || 'vizara.app',
+    brandColor: organization.brandColor || '#1ba39c',
+    watermark: whiteLabel ? organization.name : t('ar.poweredBy'),
+    showGrid: false,
+  };
 
   return (
-    <div className="h-app flex flex-col safe-top safe-bottom" style={{ background: '#1a1a1a' }}>
-      <header className="ar-bar border-b px-4 py-3 flex items-center justify-between gap-2 shrink-0 safe-x">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="icon-glass w-9 h-9 shrink-0" style={{ background: brand, border: 'none' }}>
-            <Box className="w-4 h-4 text-white" />
-          </div>
-          <div className="min-w-0">
-            <p className="font-semibold text-sm truncate">{organization.name}</p>
-            <p className="text-xs text-secondary truncate">{experienceName}</p>
+    <div className="ar-camera-root safe-top">
+      {isLoading && <Preloader label={t('ar.cameraLoading')} />}
+
+      {error && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 safe-bottom" style={{ background: 'var(--color-bg)' }}>
+          <div className="glass-liquid p-6 sm:p-8 flex flex-col items-center max-w-sm text-center w-full rounded-[var(--radius-xl)]">
+            <AlertCircle className="w-10 h-10 mb-4" style={{ color: '#ff3b30' }} />
+            <p className="text-lg font-bold mb-2">{t('ar.noCamera')}</p>
+            <p className="text-secondary text-sm mb-6">{t('ar.noCameraDesc')}</p>
+            <button onClick={retry} className="btn btn-primary w-full">{t('common.retry')}</button>
           </div>
         </div>
-        {!whiteLabel && <div className="shrink-0"><Logo size="sm" /></div>}
-      </header>
+      )}
 
-      <div className="flex-1 relative min-h-0 bg-[#1a1a1a]">
-        <model-viewer
-          src={resolveUploadUrl(model.fileUrl)}
-          ar
-          ar-modes="webxr scene-viewer quick-look"
-          camera-controls
-          touch-action="pan-y"
-          alt={model.name}
-          loading="eager"
-          reveal="auto"
-          shadow-intensity="1"
-          shadow-softness="0.5"
-          exposure="1"
-          environment-image="neutral"
-          skybox-image="neutral"
-          tone-mapping="aces"
-          style={{ width: '100%', height: '100%', background: 'transparent' }}
-        />
-      </div>
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        className={`ar-camera-video ${facingMode === 'user' ? 'ar-camera-mirror' : ''}`}
+      />
 
-      <footer className="ar-bar border-t px-4 py-3 text-center shrink-0 safe-x">
-        <p className="text-xs text-secondary">{t('ar.viewInSpace')}</p>
-        {organization.website && (
-          <a
-            href={organization.website.startsWith('http') ? organization.website : `https://${organization.website}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs font-semibold mt-1 inline-block"
-            style={{ color: brand }}
+      <ARModelStage fileUrl={model.fileUrl} name={model.name} />
+
+      <OverlayFrame config={overlayConfig} showCenterGuide={false} />
+
+      <footer className="ar-camera-dock safe-x">
+        <div className="camera-dock max-w-sm mx-auto px-4 py-3 flex items-center justify-between">
+          <button
+            onClick={() => setFacingMode((p) => (p === 'user' ? 'environment' : 'user'))}
+            className="icon-btn rounded-full glass-thick"
+            aria-label={t('ar.switchCamera')}
           >
-            {organization.website}
-          </a>
-        )}
+            <SwitchCamera className="w-6 h-6" />
+          </button>
+
+          <p className="text-xs text-center text-secondary max-w-[10rem] leading-tight">
+            {t('ar.viewInSpace')}
+          </p>
+
+          <div className="w-11 h-11 flex items-center justify-center" aria-hidden="true">
+            <Box className="w-5 h-5 opacity-40" />
+          </div>
+        </div>
       </footer>
     </div>
   );

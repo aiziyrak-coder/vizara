@@ -81,6 +81,12 @@ app.use((err: unknown, _req: express.Request, res: express.Response, next: expre
   next(err);
 });
 
+app.use('/uploads', (_req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+  next();
+});
+
 app.use('/uploads', express.static(UPLOADS_DIR, {
   maxAge: isProd ? '7d' : 0,
   dotfiles: 'deny',

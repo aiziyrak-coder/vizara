@@ -50,6 +50,7 @@ export function PublicAR() {
         organization={data.organization}
         config={data.experience.config as Record<string, string>}
         whiteLabel={data.plan?.whiteLabel}
+        model={data.model ?? undefined}
       />
     );
   }
