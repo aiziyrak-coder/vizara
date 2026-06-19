@@ -2,19 +2,34 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { stripe, isStripeConfigured, getPriceIdForPlan } from '../lib/stripe.js';
-import { PLAN_LIST, getPlan, isValidPlanId, getPlanFeatureList } from '../lib/plans.js';
-import type { PlanId } from '../../shared/plans.js';
+import {
+  AR_PLAN_LIST,
+  TOUR_PLAN_LIST,
+  getPlan,
+  isValidPlanId,
+  getPlanFeatureList,
+  getPlanProduct,
+  getDefaultPlanId,
+  type PlanId,
+  type ProductId,
+} from '../lib/plans.js';
 import { getAppUrl } from '../lib/app-url.js';
 import { isDemoBillingAllowed } from '../lib/demo.js';
 import { hasActiveSubscription } from '../middleware/subscription.js';
 import { handleStripeWebhook } from '../lib/stripe-webhook.js';
+import { getStripeCustomerId } from '../lib/plans.js';
 import { logger } from '../lib/logger.js';
 
 const router = Router();
 
-router.get('/plans', (_req, res) => {
+router.get('/plans', (req, res) => {
+  const product = String(req.query.product || '');
+  const list = product === 'vizara_tour' ? TOUR_PLAN_LIST
+    : product === 'vizara_ar' ? AR_PLAN_LIST
+    : [...AR_PLAN_LIST, ...TOUR_PLAN_LIST];
+
   res.json(
-    PLAN_LIST.map((plan) => ({
+    list.map((plan) => ({
       ...plan,
       featureList: getPlanFeatureList(plan),
     }))
@@ -25,7 +40,7 @@ router.get('/status/:orgId', requireAuth, async (req: AuthRequest, res) => {
   try {
     const org = await prisma.organization.findFirst({
       where: { id: req.params.orgId, ownerId: req.userId },
-      include: { subscription: true },
+      include: { subscriptions: true },
     });
 
     if (!org) {
@@ -33,20 +48,31 @@ router.get('/status/:orgId', requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
-    const plan = getPlan(org.subscription?.planId);
+    const arSub = org.subscriptions.find((s) => s.product === 'vizara_ar');
+    const tourSub = org.subscriptions.find((s) => s.product === 'vizara_tour');
+    const arPlan = getPlan(arSub?.planId);
+    const tourPlan = getPlan(tourSub?.planId);
+
     const modelCount = await prisma.model3D.count({ where: { organizationId: org.id } });
     const experienceCount = await prisma.experience.count({ where: { organizationId: org.id } });
     const tourCount = await prisma.virtualTour.count({ where: { organizationId: org.id } });
-    const subscriptionActive = await hasActiveSubscription(org.id);
+
+    const arActive = await hasActiveSubscription(org.id, 'vizara_ar');
+    const tourActive = await hasActiveSubscription(org.id, 'vizara_tour');
 
     res.json({
-      subscription: org.subscription,
-      subscriptionActive,
-      plan: {
-        ...plan,
-        featureList: getPlanFeatureList(plan),
+      ar: {
+        subscription: arSub ?? null,
+        subscriptionActive: arActive,
+        plan: { ...arPlan, featureList: getPlanFeatureList(arPlan) },
+        usage: { models: modelCount, experiences: experienceCount },
       },
-      usage: { models: modelCount, experiences: experienceCount, tours: tourCount },
+      tour: {
+        subscription: tourSub ?? null,
+        subscriptionActive: tourActive,
+        plan: { ...tourPlan, featureList: getPlanFeatureList(tourPlan) },
+        usage: { tours: tourCount },
+      },
       stripeConfigured: isStripeConfigured(),
       demoMode: isDemoBillingAllowed(),
     });
@@ -56,19 +82,49 @@ router.get('/status/:orgId', requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
+async function upsertProductSubscription(
+  orgId: string,
+  product: ProductId,
+  planId: PlanId,
+  data: { status: string; currentPeriodEnd?: Date; stripeSubscriptionId?: string | null }
+) {
+  return prisma.subscription.upsert({
+    where: { organizationId_product: { organizationId: orgId, product } },
+    create: {
+      organizationId: orgId,
+      product,
+      planId,
+      status: data.status,
+      currentPeriodEnd: data.currentPeriodEnd,
+      stripeSubscriptionId: data.stripeSubscriptionId ?? undefined,
+    },
+    update: {
+      planId,
+      status: data.status,
+      currentPeriodEnd: data.currentPeriodEnd,
+      ...(data.stripeSubscriptionId !== undefined ? { stripeSubscriptionId: data.stripeSubscriptionId } : {}),
+    },
+  });
+}
+
 router.post('/checkout/:orgId', requireAuth, async (req: AuthRequest, res) => {
   try {
-    const { planId: rawPlanId } = req.body as { planId?: string };
+    const { planId: rawPlanId, product: rawProduct } = req.body as { planId?: string; product?: string };
     if (!rawPlanId || !isValidPlanId(rawPlanId)) {
       res.status(400).json({ error: 'Yaroqli tarif rejasi tanlanishi shart' });
       return;
     }
     const planId = rawPlanId as PlanId;
+    const product = (rawProduct || getPlanProduct(planId)) as ProductId;
+    if (getPlanProduct(planId) !== product) {
+      res.status(400).json({ error: 'Tarif va mahsulot mos kelmaydi' });
+      return;
+    }
     const plan = getPlan(planId);
 
     const org = await prisma.organization.findFirst({
       where: { id: req.params.orgId, ownerId: req.userId },
-      include: { subscription: true },
+      include: { subscriptions: true },
     });
 
     if (!org) {
@@ -85,26 +141,17 @@ router.post('/checkout/:orgId', requireAuth, async (req: AuthRequest, res) => {
       const periodEnd = new Date();
       periodEnd.setMonth(periodEnd.getMonth() + 1);
 
-      const sub = await prisma.subscription.upsert({
-        where: { organizationId: org.id },
-        create: {
-          organizationId: org.id,
-          planId,
-          status: 'active',
-          currentPeriodEnd: periodEnd,
-        },
-        update: {
-          planId,
-          status: 'active',
-          currentPeriodEnd: periodEnd,
-        },
+      const sub = await upsertProductSubscription(org.id, product, planId, {
+        status: 'active',
+        currentPeriodEnd: periodEnd,
       });
 
       res.json({
         demo: true,
-        message: `${plan.nameUz} tarifi demo rejimida faollashtirildi`,
+        message: `${plan.nameUz} (${product === 'vizara_ar' ? 'VizaraAR' : 'VizaraTour'}) demo rejimida faollashtirildi`,
         subscription: sub,
         plan,
+        product,
       });
       return;
     }
@@ -123,7 +170,7 @@ router.post('/checkout/:orgId', requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
-    let customerId = org.subscription?.stripeCustomerId;
+    let customerId = await getStripeCustomerId(org.id);
 
     if (!customerId) {
       const customer = await stripe!.customers.create({
@@ -132,11 +179,9 @@ router.post('/checkout/:orgId', requireAuth, async (req: AuthRequest, res) => {
         metadata: { organizationId: org.id, userId: user.id },
       });
       customerId = customer.id;
-
-      await prisma.subscription.upsert({
+      await prisma.subscription.updateMany({
         where: { organizationId: org.id },
-        create: { organizationId: org.id, stripeCustomerId: customerId, planId },
-        update: { stripeCustomerId: customerId },
+        data: { stripeCustomerId: customerId },
       });
     }
 
@@ -144,12 +189,12 @@ router.post('/checkout/:orgId', requireAuth, async (req: AuthRequest, res) => {
       customer: customerId,
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${getAppUrl(req)}/dashboard/billing?success=true&org=${org.id}&plan=${planId}`,
-      cancel_url: `${getAppUrl(req)}/dashboard/billing?canceled=true&org=${org.id}`,
-      metadata: { organizationId: org.id, planId },
+      success_url: `${getAppUrl(req)}/dashboard/billing?success=true&org=${org.id}&plan=${planId}&product=${product}`,
+      cancel_url: `${getAppUrl(req)}/dashboard/billing?canceled=true&org=${org.id}&product=${product}`,
+      metadata: { organizationId: org.id, planId, product },
     });
 
-    res.json({ url: session.url, plan });
+    res.json({ url: session.url, plan, product });
   } catch (err) {
     logger.error('Checkout error', { message: err instanceof Error ? err.message : String(err) });
     res.status(500).json({ error: 'To\'lov sahifasini yaratishda xatolik' });
@@ -163,8 +208,12 @@ router.post('/activate-demo/:orgId', requireAuth, async (req: AuthRequest, res) 
       return;
     }
 
-    const { planId: rawPlanId } = req.body as { planId?: string };
-    const planId = rawPlanId && isValidPlanId(rawPlanId) ? rawPlanId : 'starter';
+    const { planId: rawPlanId, product: rawProduct } = req.body as { planId?: string; product?: ProductId };
+    const product: ProductId = rawProduct === 'vizara_tour' ? 'vizara_tour' : 'vizara_ar';
+    const defaultId = getDefaultPlanId(product);
+    const planId = rawPlanId && isValidPlanId(rawPlanId) && getPlanProduct(rawPlanId) === product
+      ? (rawPlanId as PlanId)
+      : defaultId;
     const plan = getPlan(planId);
 
     const org = await prisma.organization.findFirst({
@@ -179,22 +228,12 @@ router.post('/activate-demo/:orgId', requireAuth, async (req: AuthRequest, res) 
     const periodEnd = new Date();
     periodEnd.setMonth(periodEnd.getMonth() + 1);
 
-    const sub = await prisma.subscription.upsert({
-      where: { organizationId: org.id },
-      create: {
-        organizationId: org.id,
-        planId,
-        status: 'active',
-        currentPeriodEnd: periodEnd,
-      },
-      update: {
-        planId,
-        status: 'active',
-        currentPeriodEnd: periodEnd,
-      },
+    const sub = await upsertProductSubscription(org.id, product, planId, {
+      status: 'active',
+      currentPeriodEnd: periodEnd,
     });
 
-    res.json({ subscription: sub, plan });
+    res.json({ subscription: sub, plan, product });
   } catch (err) {
     res.status(500).json({ error: 'Demo obunani faollashtirishda xatolik' });
   }

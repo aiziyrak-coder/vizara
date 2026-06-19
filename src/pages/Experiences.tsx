@@ -3,7 +3,6 @@ import { useAuth } from '../lib/auth-context';
 import { useI18n } from '../lib/i18n-context';
 import { api, Experience, Model3D, ApiError, BillingStatus } from '../lib/api';
 import { useToast } from '../lib/toast-context';
-import { isSubscriptionActive } from '../lib/subscription';
 import { Plus, QrCode, Trash2, ExternalLink, RefreshCw, AlertCircle, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -48,8 +47,8 @@ export function Experiences() {
     load();
   }, [currentOrg]);
 
-  const canUseModelAR = billing?.plan?.features?.modelAR ?? false;
-  const subActive = billing?.subscriptionActive ?? isSubscriptionActive(billing?.subscription);
+    const subActive = billing?.ar?.subscriptionActive ?? false;
+    const canUseModelAR = billing?.ar?.plan?.features?.modelAR ?? false;
 
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();

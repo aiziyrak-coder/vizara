@@ -215,19 +215,20 @@ export const api = {
   getBillingStatus: (orgId: string) =>
     request<BillingStatus>(`/billing/status/${orgId}`),
 
-  createCheckout: (orgId: string, planId: string) =>
-    request<{ url?: string; demo?: boolean; message?: string; subscription?: Subscription; plan?: PlanInfo }>(
+  createCheckout: (orgId: string, planId: string, product: string) =>
+    request<{ url?: string; demo?: boolean; message?: string; subscription?: Subscription; plan?: PlanInfo; product?: string }>(
       `/billing/checkout/${orgId}`,
-      { method: 'POST', body: JSON.stringify({ planId }) }
+      { method: 'POST', body: JSON.stringify({ planId, product }) }
     ),
 
-  activateDemo: (orgId: string, planId: string) =>
-    request<{ subscription: Subscription; plan: PlanInfo }>(
+  activateDemo: (orgId: string, planId: string, product: string) =>
+    request<{ subscription: Subscription; plan: PlanInfo; product: string }>(
       `/billing/activate-demo/${orgId}`,
-      { method: 'POST', body: JSON.stringify({ planId }) }
+      { method: 'POST', body: JSON.stringify({ planId, product }) }
     ),
 
-  getPlans: () => request<PlanInfo[]>('/billing/plans'),
+  getPlans: (product?: string) =>
+    request<PlanInfo[]>(`/billing/plans${product ? `?product=${product}` : ''}`),
 };
 
 export interface User {
@@ -238,6 +239,7 @@ export interface User {
 
 export interface Subscription {
   id: string;
+  product?: string;
   status: string;
   planId?: string;
   currentPeriodEnd?: string;
@@ -245,26 +247,27 @@ export interface Subscription {
 }
 
 export interface PlanFeatures {
-  photoZone: boolean;
-  modelAR: boolean;
-  virtualTour: boolean;
-  customBranding: boolean;
-  customLogo: boolean;
-  whiteLabel: boolean;
-  analytics: boolean;
-  prioritySupport: boolean;
-  apiAccess: boolean;
+  photoZone?: boolean;
+  modelAR?: boolean;
+  customBranding?: boolean;
+  customLogo?: boolean;
+  whiteLabel?: boolean;
+  analytics?: boolean;
+  prioritySupport?: boolean;
+  apiAccess?: boolean;
 }
 
 export interface PlanInfo {
   id: string;
+  product?: string;
   name: string;
   nameUz: string;
   price: number;
   description: string;
-  maxModels: number;
-  maxExperiences: number;
-  maxTours: number;
+  maxModels?: number;
+  maxExperiences?: number;
+  maxTours?: number;
+  maxScenesPerTour?: number;
   maxFileSizeMB: number;
   features: PlanFeatures;
   featureList?: string[];
@@ -279,6 +282,8 @@ export interface Organization {
   logoUrl?: string;
   brandColor: string;
   website?: string;
+  subscriptions?: Subscription[];
+  /** @deprecated use subscriptions */
   subscription?: Subscription;
   _count?: { models: number; experiences: number };
 }
@@ -322,11 +327,19 @@ export interface PublicExperienceData {
   plan?: { id: string; name: string; whiteLabel: boolean };
 }
 
-export interface BillingStatus {
+export interface ProductBillingStatus {
   subscription: Subscription | null;
   subscriptionActive: boolean;
   plan: PlanInfo;
-  usage: { models: number; experiences: number; tours: number };
+}
+
+export interface BillingStatus {
+  ar: ProductBillingStatus & {
+    usage: { models: number; experiences: number };
+  };
+  tour: ProductBillingStatus & {
+    usage: { tours: number };
+  };
   stripeConfigured: boolean;
   demoMode: boolean;
 }

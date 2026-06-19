@@ -285,6 +285,8 @@ export const ru: TranslationSchema = {
     demoActivatedMsg: 'Тариф {{plan}} активирован в демо-режиме на 1 месяц!',
     activePlan: 'Активен: {{plan}} (${{price}}/мес)',
     noActivePlan: 'Нет активного тарифа',
+    noActivePlanProduct: '{{product}} подписка неактивна',
+    usageTours: 'Виртуальные туры',
     nextPayment: 'Следующий платёж',
     usage: 'Использование',
     usageModels: '3D-модели',

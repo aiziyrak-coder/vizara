@@ -1,8 +1,8 @@
 import { prisma } from './prisma.js';
 import { stripe } from './stripe.js';
-import { isValidPlanId } from './plans.js';
+import { isValidPlanId, getPlanProduct, getDefaultPlanId } from './plans.js';
 import { logger } from './logger.js';
-import type { PlanId } from '../../shared/plans.js';
+import type { PlanId, ProductId } from '../../shared/plans.js';
 
 const ACTIVE_STRIPE_STATUSES = new Set(['active', 'trialing']);
 
@@ -40,17 +40,20 @@ export async function handleStripeWebhook(
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as {
-        metadata?: { organizationId?: string; planId?: string };
+        metadata?: { organizationId?: string; planId?: string; product?: string };
         subscription?: string | null;
       };
       const orgId = session.metadata?.organizationId;
       const planId = session.metadata?.planId;
+      const product = (session.metadata?.product || 'vizara_ar') as ProductId;
       if (orgId) {
-        const validPlan = planId && isValidPlanId(planId) ? (planId as PlanId) : 'starter';
+        const validPlan = planId && isValidPlanId(planId) ? (planId as PlanId) : getDefaultPlanId(product);
+        const resolvedProduct = getPlanProduct(validPlan);
         await prisma.subscription.upsert({
-          where: { organizationId: orgId },
+          where: { organizationId_product: { organizationId: orgId, product: resolvedProduct } },
           create: {
             organizationId: orgId,
+            product: resolvedProduct,
             planId: validPlan,
             status: 'active',
             stripeSubscriptionId: session.subscription ?? undefined,
@@ -58,7 +61,7 @@ export async function handleStripeWebhook(
           update: {
             status: 'active',
             stripeSubscriptionId: session.subscription ?? undefined,
-            ...(planId && isValidPlanId(planId) ? { planId: planId as PlanId } : {}),
+            planId: validPlan,
           },
         });
       }

@@ -343,9 +343,10 @@ export function Landing() {
       <section id="pricing" className="landing-section scroll-mt-[4.5rem] sm:scroll-mt-20">
         <div className="container">
           <SectionHeader eyebrow={t('landing.priceEyebrow')} title={t('landing.priceTitle')} description={t('landing.priceDesc')} />
-        </div>
-        <div className="overflow-hidden">
-          <PricingCards mode="landing" />
+          <h3 className="text-lg font-bold mb-4 mt-8">VizaraAR</h3>
+          <PricingCards product="vizara_ar" mode="landing" />
+          <h3 className="text-lg font-bold mb-4 mt-10">VizaraTour</h3>
+          <PricingCards product="vizara_tour" mode="landing" />
         </div>
       </section>
 

@@ -1,36 +1,33 @@
 import { prisma } from '../lib/prisma.js';
-import { getOrgPlan } from '../lib/plans.js';
+import { getOrgPlanForProduct, getOrgSubscription } from '../lib/plans.js';
+import type { ProductId } from '../../shared/plans.js';
 
-export async function hasActiveSubscription(organizationId: string): Promise<boolean> {
-  const sub = await prisma.subscription.findUnique({
-    where: { organizationId },
-  });
-
+function isSubRecordActive(sub: { status: string; currentPeriodEnd: Date | null } | null): boolean {
   if (!sub) return false;
-
-  if (sub.status === 'active' || sub.status === 'trialing') {
-    if (sub.currentPeriodEnd && sub.currentPeriodEnd < new Date()) {
-      return false;
-    }
-    return true;
-  }
-
-  return false;
+  if (sub.status !== 'active' && sub.status !== 'trialing') return false;
+  if (sub.currentPeriodEnd && sub.currentPeriodEnd < new Date()) return false;
+  return true;
 }
 
-export async function getSubscriptionWithPlan(organizationId: string) {
-  const sub = await prisma.subscription.findUnique({
-    where: { organizationId },
-  });
-  const plan = await getOrgPlan(organizationId);
-  const active = await hasActiveSubscription(organizationId);
+export async function hasActiveSubscription(
+  organizationId: string,
+  product: ProductId = 'vizara_ar'
+): Promise<boolean> {
+  const sub = await getOrgSubscription(organizationId, product);
+  return isSubRecordActive(sub);
+}
+
+export async function getSubscriptionWithPlan(organizationId: string, product: ProductId) {
+  const sub = await getOrgSubscription(organizationId, product);
+  const plan = await getOrgPlanForProduct(organizationId, product);
+  const active = isSubRecordActive(sub);
   return { subscription: sub, plan, active };
 }
 
 export async function checkModelLimit(organizationId: string): Promise<{ ok: boolean; message?: string }> {
-  const { plan, active } = await getSubscriptionWithPlan(organizationId);
+  const { plan, active } = await getSubscriptionWithPlan(organizationId, 'vizara_ar');
   if (!active) {
-    return { ok: false, message: 'Faol obuna talab qilinadi. Tarif rejasini tanlang.' };
+    return { ok: false, message: 'VizaraAR obunasi talab qilinadi. Tarif rejasini tanlang.' };
   }
   if (plan.maxModels === -1) return { ok: true };
 
@@ -38,16 +35,16 @@ export async function checkModelLimit(organizationId: string): Promise<{ ok: boo
   if (count >= plan.maxModels) {
     return {
       ok: false,
-      message: `${plan.nameUz} tarifida maksimal ${plan.maxModels} ta model. Yuqori tarifga o'ting.`,
+      message: `VizaraAR ${plan.nameUz} tarifida maksimal ${plan.maxModels} ta model.`,
     };
   }
   return { ok: true };
 }
 
 export async function checkExperienceLimit(organizationId: string): Promise<{ ok: boolean; message?: string }> {
-  const { plan, active } = await getSubscriptionWithPlan(organizationId);
+  const { plan, active } = await getSubscriptionWithPlan(organizationId, 'vizara_ar');
   if (!active) {
-    return { ok: false, message: 'Faol obuna talab qilinadi. Tarif rejasini tanlang.' };
+    return { ok: false, message: 'VizaraAR obunasi talab qilinadi. Tarif rejasini tanlang.' };
   }
   if (plan.maxExperiences === -1) return { ok: true };
 
@@ -55,7 +52,7 @@ export async function checkExperienceLimit(organizationId: string): Promise<{ ok
   if (count >= plan.maxExperiences) {
     return {
       ok: false,
-      message: `${plan.nameUz} tarifida maksimal ${plan.maxExperiences} ta tajriba. Yuqori tarifga o'ting.`,
+      message: `VizaraAR ${plan.nameUz} tarifida maksimal ${plan.maxExperiences} ta tajriba.`,
     };
   }
   return { ok: true };
@@ -65,32 +62,23 @@ export async function checkExperienceType(
   organizationId: string,
   type: string
 ): Promise<{ ok: boolean; message?: string }> {
-  const plan = await getOrgPlan(organizationId);
+  const plan = await getOrgPlanForProduct(organizationId, 'vizara_ar');
   if (type === 'photo_zone' && !plan.features.photoZone) {
-    return {
-      ok: false,
-      message: `Foto Zona hozirgi tarifda mavjud emas. Tarif: ${plan.nameUz}.`,
-    };
+    return { ok: false, message: `Foto Zona hozirgi VizaraAR tarifda mavjud emas.` };
   }
   if (type === 'model_ar' && !plan.features.modelAR) {
     return {
       ok: false,
-      message: `3D Model AR faqat Business va yuqori tariflarda mavjud. Hozirgi tarif: ${plan.nameUz}.`,
+      message: `3D Model AR VizaraAR Business va yuqori tariflarda mavjud.`,
     };
   }
   return { ok: true };
 }
 
 export async function checkTourLimit(organizationId: string): Promise<{ ok: boolean; message?: string }> {
-  const { plan, active } = await getSubscriptionWithPlan(organizationId);
+  const { plan, active } = await getSubscriptionWithPlan(organizationId, 'vizara_tour');
   if (!active) {
-    return { ok: false, message: 'Faol obuna talab qilinadi. Tarif rejasini tanlang.' };
-  }
-  if (!plan.features.virtualTour) {
-    return {
-      ok: false,
-      message: `Virtual Tour faqat Business va yuqori tariflarda mavjud. Hozirgi tarif: ${plan.nameUz}.`,
-    };
+    return { ok: false, message: 'VizaraTour obunasi talab qilinadi. Tarif rejasini tanlang.' };
   }
   if (plan.maxTours === -1) return { ok: true };
 
@@ -98,14 +86,14 @@ export async function checkTourLimit(organizationId: string): Promise<{ ok: bool
   if (count >= plan.maxTours) {
     return {
       ok: false,
-      message: `${plan.nameUz} tarifida maksimal ${plan.maxTours} ta virtual tur. Yuqori tarifga o'ting.`,
+      message: `VizaraTour ${plan.nameUz} tarifida maksimal ${plan.maxTours} ta virtual tur.`,
     };
   }
   return { ok: true };
 }
 
-export async function getMaxFileSizeBytes(organizationId: string): Promise<number> {
-  const plan = await getOrgPlan(organizationId);
+export async function getMaxFileSizeBytes(organizationId: string, product: ProductId = 'vizara_ar'): Promise<number> {
+  const plan = await getOrgPlanForProduct(organizationId, product);
   if (plan.maxFileSizeMB === -1) return Infinity;
   return plan.maxFileSizeMB * 1024 * 1024;
 }

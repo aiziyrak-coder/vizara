@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { slugify } from '../lib/auth.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
-import { getOrgPlan } from '../lib/plans.js';
+import { getOrgPlanForProduct } from '../lib/plans.js';
 import { isValidHexColor, clampString, isValidHttpUrl } from '../lib/validate.js';
 
 const router = Router();
@@ -12,7 +12,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res) => {
     const orgs = await prisma.organization.findMany({
       where: { ownerId: req.userId },
       include: {
-        subscription: true,
+        subscriptions: true,
         _count: { select: { models: true, experiences: true } },
       },
     });
@@ -57,7 +57,8 @@ router.patch('/:id', requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
-    const plan = await getOrgPlan(existing.id);
+    const arPlan = await getOrgPlanForProduct(existing.id, 'vizara_ar');
+    const tourPlan = await getOrgPlanForProduct(existing.id, 'vizara_tour');
     const data: {
       name?: string;
       description?: string | null;
@@ -81,7 +82,7 @@ router.patch('/:id', requireAuth, async (req: AuthRequest, res) => {
     }
 
     if (brandColor !== undefined) {
-      if (!plan.features.customBranding) {
+      if (!arPlan.features.customBranding && !tourPlan.features.customBranding) {
         res.status(403).json({
           error: 'Brend rangi hozirgi tarifda mavjud emas. Business+ tarifga o\'ting.',
           code: 'PLAN_FEATURE',
@@ -96,7 +97,7 @@ router.patch('/:id', requireAuth, async (req: AuthRequest, res) => {
     }
 
     if (logoUrl !== undefined) {
-      if (!plan.features.customLogo) {
+      if (!arPlan.features.customLogo && !tourPlan.features.customLogo) {
         res.status(403).json({
           error: 'Logo yuklash hozirgi tarifda mavjud emas. Pro+ tarifga o\'ting.',
           code: 'PLAN_FEATURE',
@@ -148,9 +149,14 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
         brandColor: color,
         website,
         ownerId: req.userId!,
-        subscription: { create: { status: 'inactive' } },
+        subscriptions: {
+          create: [
+            { product: 'vizara_ar', planId: 'ar_starter', status: 'inactive' },
+            { product: 'vizara_tour', planId: 'tour_starter', status: 'inactive' },
+          ],
+        },
       },
-      include: { subscription: true },
+      include: { subscriptions: true },
     });
 
     res.status(201).json(org);

@@ -342,6 +342,8 @@ export interface TranslationSchema {
     demoActivatedMsg: string;
     activePlan: string;
     noActivePlan: string;
+    noActivePlanProduct: string;
+    usageTours: string;
     nextPayment: string;
     usage: string;
     usageModels: string;
@@ -369,20 +371,19 @@ export interface TranslationSchema {
     saved: string;
   };
   plans: {
-    starter: { name: string; description: string };
-    business: { name: string; description: string };
-    pro: { name: string; description: string };
-    enterprise: { name: string; description: string };
+    [key: string]: { name: string; description: string } | Record<string, string>;
     features: {
       models: string;
       experiences: string;
       tours: string;
+      scenesPerTour: string;
+      panorama360: string;
+      hotspots: string;
       qr: string;
       fileSize: string;
       fileSizeUnlimited: string;
       photoZone: string;
       modelAR: string;
-      virtualTour: string;
       branding: string;
       logo: string;
       analytics: string;

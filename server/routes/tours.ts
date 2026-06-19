@@ -10,7 +10,7 @@ import {
   hasActiveSubscription,
   checkTourLimit,
 } from '../middleware/subscription.js';
-import { getOrgPlan } from '../lib/plans.js';
+import { getOrgPlanForProduct } from '../lib/plans.js';
 import { getAppUrl } from '../lib/app-url.js';
 import { PANORAMAS_DIR, QR_DIR, MAX_UPLOAD_BYTES } from '../lib/paths.js';
 import { publicArRateLimit } from '../middleware/rate-limit.js';
@@ -104,7 +104,7 @@ router.post('/:orgId', requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
-    const active = await hasActiveSubscription(org.id);
+    const active = await hasActiveSubscription(org.id, 'vizara_tour');
     if (!active) {
       res.status(402).json({ error: 'Faol obuna talab qilinadi.', code: 'SUBSCRIPTION_REQUIRED' });
       return;
@@ -558,7 +558,7 @@ router.get('/public/:orgSlug/:tourSlug', publicArRateLimit, async (req, res) => 
       return;
     }
 
-    const active = await hasActiveSubscription(org.id);
+    const active = await hasActiveSubscription(org.id, 'vizara_tour');
     if (!active) {
       res.status(403).json({ error: 'Bu virtual tur hozircha faol emas.' });
       return;
@@ -583,7 +583,7 @@ router.get('/public/:orgSlug/:tourSlug', publicArRateLimit, async (req, res) => 
       ? tour.startSceneId
       : tour.scenes[0].id;
 
-    const plan = await getOrgPlan(org.id);
+    const plan = await getOrgPlanForProduct(org.id, 'vizara_tour');
 
     res.json({
       tour: {

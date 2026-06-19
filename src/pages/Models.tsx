@@ -3,7 +3,6 @@ import { useAuth } from '../lib/auth-context';
 import { useI18n } from '../lib/i18n-context';
 import { api, Model3D, BillingStatus } from '../lib/api';
 import { useToast } from '../lib/toast-context';
-import { isSubscriptionActive } from '../lib/subscription';
 import { toDateLocale } from '../i18n';
 import { Upload, Trash2, Box, AlertCircle, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -46,10 +45,10 @@ export function Models() {
     load();
   }, [currentOrg]);
 
-  const subActive = billing?.subscriptionActive ?? isSubscriptionActive(billing?.subscription);
-  const maxFileMB = billing?.plan?.maxFileSizeMB ?? -1;
+  const subActive = billing?.ar?.subscriptionActive ?? false;
+  const maxFileMB = billing?.ar?.plan?.maxFileSizeMB ?? -1;
   const fileSizeLabel = maxFileMB === -1 ? t('models.unlimitedSize') : `${maxFileMB} MB`;
-  const modelLimit = billing?.plan?.maxModels ?? 3;
+  const modelLimit = billing?.ar?.plan?.maxModels ?? 3;
   const dateLocale = toDateLocale(locale);
 
   const handleUpload = async (e: FormEvent) => {
@@ -104,7 +103,7 @@ export function Models() {
         description={t('models.desc')}
       />
 
-      {billing?.plan && (
+      {billing?.ar?.plan && (
         <div className="card p-4 mb-5">
           <UsageBar label={t('models.limitLabel')} used={models.length} max={modelLimit} />
         </div>

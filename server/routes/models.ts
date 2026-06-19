@@ -49,7 +49,7 @@ function cleanupFile(filePath: string | undefined | null) {
 async function getOrgForUser(orgId: string, userId: string) {
   return prisma.organization.findFirst({
     where: { id: orgId, ownerId: userId },
-    include: { subscription: true },
+    include: { subscriptions: true },
   });
 }
 
@@ -117,7 +117,7 @@ router.post('/:orgId', requireAuth, uploadRateLimit, (req: AuthRequest, res, nex
       return;
     }
 
-    const maxBytes = await getMaxFileSizeBytes(org.id);
+    const maxBytes = await getMaxFileSizeBytes(org.id, 'vizara_ar');
     if (Number.isFinite(maxBytes) && req.file.size > maxBytes) {
       cleanupFile(uploadedPath);
       res.status(400).json({

@@ -285,6 +285,8 @@ export const uzCyrl: TranslationSchema = {
     demoActivatedMsg: '{{plan}} тарифи демо режимда 1 ойга фаоллаштирилди!',
     activePlan: 'Фаол: {{plan}} (${{price}}/ой)',
     noActivePlan: 'Фаол тариф йўқ',
+    noActivePlanProduct: '{{product}} обунasi фаол эмас',
+    usageTours: 'Virtual турлар',
     nextPayment: 'Кейинги тўлов',
     usage: 'Фойдаланиш',
     usageModels: '3D моделлар',

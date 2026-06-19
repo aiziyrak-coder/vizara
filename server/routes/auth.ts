@@ -49,7 +49,12 @@ router.post('/register', authRateLimit, async (req, res) => {
           create: {
             name: organizationName,
             slug,
-            subscription: { create: { status: 'inactive' } },
+            subscriptions: {
+              create: [
+                { product: 'vizara_ar', planId: 'ar_starter', status: 'inactive' },
+                { product: 'vizara_tour', planId: 'tour_starter', status: 'inactive' },
+              ],
+            },
           },
         },
       },
@@ -80,7 +85,7 @@ router.post('/login', authRateLimit, async (req, res) => {
 
     const user = await prisma.user.findUnique({
       where: { email },
-      include: { organizations: { include: { subscription: true } } },
+      include: { organizations: { include: { subscriptions: true } } },
     });
 
     if (!user || !(await verifyPassword(password, user.password))) {
@@ -107,7 +112,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res) => {
       include: {
         organizations: {
           include: {
-            subscription: true,
+            subscriptions: true,
             _count: { select: { models: true, experiences: true } },
           },
         },

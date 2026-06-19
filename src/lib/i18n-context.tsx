@@ -11,7 +11,7 @@ import {
   type TranslationSchema,
 } from '../i18n';
 import type { PlanId } from '../../shared/plans';
-import { PLANS } from '../../shared/plans';
+import { PLANS, getPlan, isArPlanId } from '../../shared/plans';
 
 type Params = Record<string, string | number>;
 
@@ -65,32 +65,52 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   );
 
   const getPlanName = useCallback(
-    (planId: PlanId) => dict.plans[planId].name,
+    (planId: PlanId) => {
+      const entry = (dict.plans as Record<string, { name?: string }>)[planId];
+      return entry?.name ?? getPlan(planId).nameUz;
+    },
     [dict]
   );
 
   const getPlanDescription = useCallback(
-    (planId: PlanId) => dict.plans[planId].description,
+    (planId: PlanId) => {
+      const entry = (dict.plans as Record<string, { name?: string; description?: string }>)[planId];
+      return entry?.description ?? getPlan(planId).description;
+    },
     [dict]
   );
 
   const getPlanFeatures = useCallback(
     (planId: PlanId) => {
-      const plan = PLANS[planId];
+      const plan = getPlan(planId);
       const f = dict.plans.features;
       const ul = f.unlimited;
-      const items: string[] = [
-        interpolate(f.models, { count: formatLimit(plan.maxModels, ul) }),
-        interpolate(f.experiences, { count: formatLimit(plan.maxExperiences, ul) }),
-        interpolate(f.tours, { count: formatLimit(plan.maxTours, ul) }),
-        f.qr,
+      const items: string[] = [];
+
+      if (isArPlanId(planId)) {
+        items.push(
+          interpolate(f.models, { count: formatLimit(plan.maxModels, ul) }),
+          interpolate(f.experiences, { count: formatLimit(plan.maxExperiences, ul) }),
+          f.qr,
+        );
+        if (plan.features.photoZone) items.push(f.photoZone);
+        if (plan.features.modelAR) items.push(f.modelAR);
+      } else {
+        items.push(
+          interpolate(f.tours, { count: formatLimit(plan.maxTours, ul) }),
+          interpolate(f.scenesPerTour, { count: formatLimit(plan.maxScenesPerTour, ul) }),
+          f.panorama360,
+          f.hotspots,
+          f.qr,
+        );
+      }
+
+      items.push(
         plan.maxFileSizeMB === -1
           ? f.fileSizeUnlimited
           : interpolate(f.fileSize, { mb: plan.maxFileSizeMB }),
-      ];
-      if (plan.features.photoZone) items.push(f.photoZone);
-      if (plan.features.modelAR) items.push(f.modelAR);
-      if (plan.features.virtualTour) items.push(f.virtualTour);
+      );
+
       if (plan.features.customBranding) items.push(f.branding);
       if (plan.features.customLogo) items.push(f.logo);
       if (plan.features.analytics) items.push(f.analytics);

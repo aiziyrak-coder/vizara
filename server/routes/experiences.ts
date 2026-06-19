@@ -10,7 +10,7 @@ import {
   checkExperienceLimit,
   checkExperienceType,
 } from '../middleware/subscription.js';
-import { getOrgPlan } from '../lib/plans.js';
+import { getOrgPlanForProduct } from '../lib/plans.js';
 import { getAppUrl } from '../lib/app-url.js';
 
 import { QR_DIR } from '../lib/paths.js';
@@ -58,7 +58,7 @@ router.post('/:orgId', requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
-    const active = await hasActiveSubscription(org.id);
+    const active = await hasActiveSubscription(org.id, 'vizara_ar');
     if (!active) {
       res.status(402).json({
         error: 'Faol obuna talab qilinadi. Tarif rejasini tanlang.',
@@ -239,7 +239,7 @@ router.get('/public/:orgSlug/:expSlug', publicArRateLimit, async (req, res) => {
       return;
     }
 
-    const active = await hasActiveSubscription(org.id);
+    const active = await hasActiveSubscription(org.id, 'vizara_ar');
     if (!active) {
       res.status(403).json({ error: 'Bu tajriba hozircha faol emas. Tashkilot obunasi tugagan.' });
       return;
@@ -263,7 +263,7 @@ router.get('/public/:orgSlug/:expSlug', publicArRateLimit, async (req, res) => {
       model = await prisma.model3D.findUnique({ where: { id: experience.modelId } });
     }
 
-    const plan = await getOrgPlan(org.id);
+    const plan = await getOrgPlanForProduct(org.id, 'vizara_ar');
 
     let config: Record<string, unknown> | null = null;
     if (experience.config) {

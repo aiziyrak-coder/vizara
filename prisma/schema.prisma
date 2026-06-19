@@ -30,7 +30,7 @@ model Organization {
   models       Model3D[]
   experiences  Experience[]
   virtualTours VirtualTour[]
-  subscription Subscription?
+  subscriptions Subscription[]
 }
 
 model Model3D {
@@ -105,14 +105,17 @@ model TourHotspot {
 
 model Subscription {
   id                   String       @id @default(cuid())
-  organizationId       String       @unique
+  organizationId       String
   organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  planId               String       @default("starter")
+  product              String       @default("vizara_ar")
+  planId               String       @default("ar_starter")
   status               String       @default("inactive")
   stripeCustomerId     String?
   stripeSubscriptionId String?
   currentPeriodEnd     DateTime?
   createdAt            DateTime     @default(now())
+
+  @@unique([organizationId, product])
 }
 
 model StripeWebhookEvent {

@@ -4,7 +4,6 @@ import { useAuth } from '../lib/auth-context';
 import { useI18n } from '../lib/i18n-context';
 import { api, VirtualTour, ApiError, BillingStatus } from '../lib/api';
 import { useToast } from '../lib/toast-context';
-import { isSubscriptionActive } from '../lib/subscription';
 import { Plus, Trash2, ExternalLink, RefreshCw, AlertCircle, Share2, Map, Pencil } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
@@ -45,8 +44,8 @@ export function Tours() {
     load();
   }, [currentOrg]);
 
-  const canUseTour = billing?.plan?.features?.virtualTour ?? false;
-  const subActive = billing?.subscriptionActive ?? isSubscriptionActive(billing?.subscription);
+  const subActive = billing?.tour?.subscriptionActive ?? false;
+  const canUseTour = subActive;
 
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();

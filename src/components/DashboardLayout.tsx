@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { useI18n } from '../lib/i18n-context';
-import { isSubscriptionActive } from '../lib/subscription';
+import { isProductActive } from '../lib/subscription';
 import { LayoutDashboard, Box, QrCode, CreditCard, LogOut, Menu, X, Settings, Home, Map } from 'lucide-react';
 import { AppBackground } from './FuturisticBg';
 import { LogoLink } from './Logo';
@@ -50,7 +50,9 @@ export function DashboardLayout() {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  const subActive = isSubscriptionActive(currentOrg?.subscription);
+  const arActive = isProductActive(currentOrg, 'vizara_ar');
+  const tourActive = isProductActive(currentOrg, 'vizara_tour');
+  const subActive = arActive || tourActive;
   const pageTitle = location.pathname.startsWith('/dashboard/tours/')
     ? t('tours.edit')
     : t(pageTitleKeys[location.pathname] || 'nav.control');
@@ -100,8 +102,12 @@ export function DashboardLayout() {
           </div>
           <div className="mb-3 px-1">
             <span className={`status-badge ${subActive ? 'status-badge-active' : 'status-badge-inactive'}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${subActive ? 'bg-[#34c759]' : 'bg-[#ff3b30]'}`} />
-              {subActive ? t('layout.planActive') : t('layout.planNone')}
+              <span className={`w-1.5 h-1.5 rounded-full ${arActive ? 'bg-[#34c759]' : 'bg-[#ff3b30]'}`} />
+              AR
+            </span>
+            <span className={`status-badge ml-1 ${subActive ? 'status-badge-active' : 'status-badge-inactive'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${tourActive ? 'bg-[#34c759]' : 'bg-[#ff3b30]'}`} />
+              Tour
             </span>
           </div>
           <p className="text-xs text-secondary truncate mb-2 px-1">{user.email}</p>
