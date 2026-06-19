@@ -128,6 +128,7 @@ pm2 startup systemd -u root --hp /root 2>/dev/null || true
 mkdir -p /var/www/certbot
 
 # Phase 1: HTTP nginx (for certbot + initial serve)
+rm -f /etc/nginx/sites-enabled/vizara.saxar.uz.conf /etc/nginx/sites-enabled/vizaraapi.saxar.uz.conf
 cp deploy/nginx-vizara-frontend-http.conf /etc/nginx/sites-available/vizara.uz.conf
 cp deploy/nginx-vizara-api-http.conf /etc/nginx/sites-available/api.vizara.uz.conf
 cp deploy/nginx-legacy-saxar-redirect.conf /etc/nginx/sites-available/legacy-saxar-redirect.conf
