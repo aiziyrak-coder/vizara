@@ -37,7 +37,7 @@ export function PublicTour() {
           <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-4" />
           <p className="text-lg font-bold text-white mb-2">{t('tour.notFound')}</p>
           <p className="text-white/60 text-sm">{error || t('tour.notFoundDesc')}</p>
-          <div className="mt-6 flex justify-center"><Logo size="sm" /></div>
+          <div className="mt-6 flex justify-center"><Logo size="sm" animated /></div>
         </div>
       </div>
     );

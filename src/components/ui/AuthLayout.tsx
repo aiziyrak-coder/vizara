@@ -26,7 +26,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
     <PageShell className="min-h-app">
       <div className="grid lg:grid-cols-2 min-h-app">
         <div className="hidden lg:flex flex-col justify-between auth-panel p-12 relative z-10">
-          <LogoLink size="md" />
+          <LogoLink size="md" variant="light" />
           <div>
             <h2 className="text-3xl font-bold text-white leading-tight mb-4 tracking-tight">
               {t('auth.panelTitle')}

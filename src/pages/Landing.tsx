@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { PricingCards } from '../components/PricingCards';
 import { PageShell } from '../components/FuturisticBg';
-import { LogoLink } from '../components/Logo';
+import { LogoLink, Logo } from '../components/Logo';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { useAuth } from '../lib/auth-context';
@@ -166,6 +166,9 @@ export function Landing() {
       <section className="landing-hero-bg landing-section pt-10 sm:pt-14 pb-6">
         <div className="container">
           <div className="max-w-3xl mx-auto text-center mb-8 sm:mb-10">
+            <div className="flex justify-center mb-6 sm:mb-8">
+              <Logo size="xl" showTagline stacked />
+            </div>
             <div className="inline-flex items-center gap-2 badge mb-4 max-w-full mx-auto">
               <span className="w-1.5 h-1.5 rounded-full shrink-0 animate-pulse" style={{ background: 'var(--brand)' }} />
               <span className="leading-snug">{t('landing.badge')}</span>

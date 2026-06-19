@@ -4,6 +4,7 @@ import {
   isValidLocale,
   DEFAULT_LOCALE,
 } from '../i18n';
+import { Logo } from './Logo';
 
 function getDefaultLabel(): string {
   try {
@@ -22,8 +23,8 @@ interface PreloaderProps {
 export function Preloader({ label }: PreloaderProps) {
   return (
     <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="w-10 h-10 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-      <p className="mt-4 text-sm text-white/90 font-medium">{label ?? getDefaultLabel()}</p>
+      <Logo size="lg" showText animated variant="light" stacked />
+      <p className="mt-5 text-sm text-white/90 font-medium">{label ?? getDefaultLabel()}</p>
     </div>
   );
 }

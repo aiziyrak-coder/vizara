@@ -1,46 +1,74 @@
 import { Link } from 'react-router-dom';
+import { VizaraMark, type VizaraMarkVariant } from './VizaraMark';
 
 interface LogoProps {
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   showText?: boolean;
+  showTagline?: boolean;
+  animated?: boolean;
+  variant?: VizaraMarkVariant;
+  stacked?: boolean;
 }
 
 const sizes = {
-  sm: { icon: 28, text: 'text-[15px]' },
-  md: { icon: 32, text: 'text-[17px]' },
-  lg: { icon: 36, text: 'text-xl' },
+  sm: { mark: 30, name: 'text-[15px]', tagline: 'text-[7px]' },
+  md: { mark: 36, name: 'text-[17px]', tagline: 'text-[8px]' },
+  lg: { mark: 44, name: 'text-xl', tagline: 'text-[9px]' },
+  xl: { mark: 72, name: 'text-3xl', tagline: 'text-[11px] tracking-[0.22em]' },
 };
 
-export function Logo({ size = 'md', showText = true }: LogoProps) {
+export function Logo({
+  size = 'md',
+  showText = true,
+  showTagline = false,
+  animated = false,
+  variant = 'default',
+  stacked,
+}: LogoProps) {
   const s = sizes[size];
+  const isStacked = stacked ?? (showTagline || size === 'xl');
+  const nameColor = variant === 'light' ? 'text-white' : 'text-[#003B73]';
+  const taglineColor = variant === 'light' ? 'text-white/70' : 'text-[#4A4A4A]';
 
   return (
-    <div className="flex items-center gap-2.5">
-      <svg width={s.icon} height={s.icon} viewBox="0 0 32 32" fill="none" aria-hidden="true">
-        <defs>
-          <linearGradient id="logo-grad" x1="0" y1="0" x2="32" y2="32">
-            <stop offset="0%" stopColor="#2ec4b6" />
-            <stop offset="100%" stopColor="#1ba39c" />
-          </linearGradient>
-        </defs>
-        <rect width="32" height="32" rx="9" fill="url(#logo-grad)" />
-        <rect width="32" height="32" rx="9" fill="url(#logo-grad)" opacity="0.3" style={{ filter: 'blur(2px)' }} />
-        <path d="M16 8v16M10 13h12M10 19h12" stroke="white" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="16" cy="16" r="3" fill="white" fillOpacity="0.95" />
-      </svg>
+    <div
+      className={
+        isStacked
+          ? 'flex flex-col items-center gap-1 text-center'
+          : 'flex items-center gap-2.5'
+      }
+    >
+      <VizaraMark height={s.mark} variant={variant} animated={animated} />
       {showText && (
-        <span className={`${s.text} font-bold tracking-tight text-[var(--color-ink)]`}>
+        <span className={`${s.name} font-bold tracking-tight leading-none ${nameColor}`}>
           Vizara
+        </span>
+      )}
+      {showTagline && (
+        <span
+          className={`${s.tagline} font-medium uppercase tracking-[0.18em] leading-tight ${taglineColor}`}
+        >
+          Web AR &amp; Virtual Tour
         </span>
       )}
     </div>
   );
 }
 
-export function LogoLink({ to = '/', size = 'md' }: { to?: string; size?: 'sm' | 'md' | 'lg' }) {
+export function LogoLink({
+  to = '/',
+  size = 'md',
+  variant = 'default',
+  showTagline = false,
+}: {
+  to?: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  variant?: VizaraMarkVariant;
+  showTagline?: boolean;
+}) {
   return (
     <Link to={to} className="inline-flex hover:opacity-85 transition-opacity duration-200">
-      <Logo size={size} />
+      <Logo size={size} variant={variant} showTagline={showTagline} />
     </Link>
   );
 }

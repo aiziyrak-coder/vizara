@@ -38,7 +38,7 @@ export function PublicAR() {
           <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-4" />
           <p className="text-lg font-bold text-[#0f172a] mb-2">{t('ar.notFound')}</p>
           <p className="text-[#64748b] text-sm">{error || t('ar.notFoundDesc')}</p>
-          <div className="mt-6 flex justify-center"><Logo size="sm" /></div>
+          <div className="mt-6 flex justify-center"><Logo size="sm" animated /></div>
         </div>
       </div>
     );
