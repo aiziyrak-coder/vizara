@@ -10,6 +10,13 @@ declare module 'react' {
           'ar-modes'?: string;
           'ar-scale'?: string;
           'ar-placement'?: string;
+          'ar-tone-mapping'?: string;
+          'camera-orbit'?: string;
+          'camera-target'?: string;
+          'field-of-view'?: string;
+          'min-camera-orbit'?: string;
+          'max-camera-orbit'?: string;
+          'interpolation-decay'?: string;
           'camera-controls'?: boolean;
           'touch-action'?: string;
           alt?: string;

@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { SwitchCamera, AlertCircle, Camera } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { AlertCircle } from 'lucide-react';
 import { useCamera } from '../hooks/useCamera';
-import { captureFromVideo, shareCapture, type CaptureResult } from '../utils/capture';
+import { useARCapture } from '../hooks/useARCapture';
 import { Preloader } from './Preloader';
 import { OverlayFrame } from './OverlayFrame';
-import { ARModelStage } from './ARModelStage';
+import { ARModelStage, type ModelViewerElement } from './ARModelStage';
 import { CaptureSheet } from './CaptureSheet';
+import { ARCameraDock } from './ARCameraDock';
 import { FacingMode, OverlayConfig } from '../types';
 import { useI18n } from '../lib/i18n-context';
 
@@ -20,10 +21,7 @@ export function PhotoZoneViewer({ organization, config, whiteLabel, model }: Pho
   const { t } = useI18n();
   const [facingMode, setFacingMode] = useState<FacingMode>('environment');
   const { videoRef, error, isLoading, isReady, retry } = useCamera(facingMode);
-  const [captureMsg, setCaptureMsg] = useState('');
-  const [captureResult, setCaptureResult] = useState<CaptureResult | null>(null);
-  const [capturing, setCapturing] = useState(false);
-  const [flash, setFlash] = useState(false);
+  const modelViewerRef = useRef<ModelViewerElement>(null);
 
   const overlayConfig: OverlayConfig = {
     title: config?.title || organization.name,
@@ -34,30 +32,20 @@ export function PhotoZoneViewer({ organization, config, whiteLabel, model }: Pho
     showGrid: false,
   };
 
-  const handleCapture = async () => {
-    if (!videoRef.current || !isReady || capturing) return;
-
-    setCapturing(true);
-    setFlash(true);
-    window.setTimeout(() => setFlash(false), 180);
-
-    try {
-      const result = await captureFromVideo(videoRef.current, facingMode, overlayConfig);
-      const shared = await shareCapture(result);
-
-      if (shared) {
-        setCaptureMsg(t('ar.photoSaved'));
-        setTimeout(() => setCaptureMsg(''), 3000);
-      } else {
-        setCaptureResult(result);
-      }
-    } catch (err) {
-      setCaptureMsg(err instanceof Error ? err.message : t('common.loadError'));
-      setTimeout(() => setCaptureMsg(''), 4000);
-    } finally {
-      setCapturing(false);
-    }
-  };
+  const {
+    handleCapture,
+    capturing,
+    flash,
+    captureMsg,
+    captureResult,
+    clearCaptureResult,
+  } = useARCapture({
+    videoRef,
+    facingMode,
+    overlayConfig,
+    modelViewerRef: model ? modelViewerRef : undefined,
+    isReady,
+  });
 
   return (
     <div className="ar-camera-root safe-top">
@@ -84,7 +72,14 @@ export function PhotoZoneViewer({ organization, config, whiteLabel, model }: Pho
 
       {flash && <div className="ar-capture-flash" aria-hidden="true" />}
 
-      {model && <ARModelStage fileUrl={model.fileUrl} name={model.name} showArButton />}
+      {model && (
+        <ARModelStage
+          ref={modelViewerRef}
+          fileUrl={model.fileUrl}
+          name={model.name}
+          showArButton
+        />
+      )}
 
       <OverlayFrame config={overlayConfig} showCenterGuide={!model} />
 
@@ -95,34 +90,15 @@ export function PhotoZoneViewer({ organization, config, whiteLabel, model }: Pho
       )}
 
       {captureResult && (
-        <CaptureSheet result={captureResult} onClose={() => setCaptureResult(null)} />
+        <CaptureSheet result={captureResult} onClose={clearCaptureResult} />
       )}
 
-      <footer className="ar-camera-dock safe-x">
-        <div className="camera-dock max-w-sm mx-auto px-4 py-3 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => setFacingMode((p) => (p === 'user' ? 'environment' : 'user'))}
-            className="icon-btn rounded-full glass-thick"
-            aria-label={t('ar.switchCamera')}
-          >
-            <SwitchCamera className="w-6 h-6" />
-          </button>
-
-          <button
-            type="button"
-            onClick={handleCapture}
-            disabled={!isReady || capturing}
-            className="capture-btn"
-            style={{ touchAction: 'manipulation' }}
-            aria-label={t('ar.capture')}
-          >
-            <Camera className="w-8 h-8" />
-          </button>
-
-          <div className="w-11 h-11" aria-hidden="true" />
-        </div>
-      </footer>
+      <ARCameraDock
+        onSwitchCamera={() => setFacingMode((p) => (p === 'user' ? 'environment' : 'user'))}
+        onCapture={handleCapture}
+        capturing={capturing}
+        captureDisabled={!isReady}
+      />
     </div>
   );
 }

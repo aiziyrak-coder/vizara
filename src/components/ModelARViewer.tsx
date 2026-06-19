@@ -1,9 +1,12 @@
-import { useState } from 'react';
-import { SwitchCamera, AlertCircle, Box } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { AlertCircle } from 'lucide-react';
 import { useCamera } from '../hooks/useCamera';
+import { useARCapture } from '../hooks/useARCapture';
 import { Preloader } from './Preloader';
 import { OverlayFrame } from './OverlayFrame';
-import { ARModelStage } from './ARModelStage';
+import { ARModelStage, type ModelViewerElement } from './ARModelStage';
+import { CaptureSheet } from './CaptureSheet';
+import { ARCameraDock } from './ARCameraDock';
 import { FacingMode, OverlayConfig } from '../types';
 import { useI18n } from '../lib/i18n-context';
 
@@ -17,15 +20,8 @@ interface ModelARViewerProps {
 export function ModelARViewer({ organization, model, experienceName, whiteLabel }: ModelARViewerProps) {
   const { t } = useI18n();
   const [facingMode, setFacingMode] = useState<FacingMode>('environment');
-  const { videoRef, error, isLoading, retry } = useCamera(facingMode);
-
-  if (!model) {
-    return (
-      <div className="min-h-app flex items-center justify-center p-4" style={{ background: 'var(--color-bg)' }}>
-        <p className="text-secondary">{t('ar.modelNotFound')}</p>
-      </div>
-    );
-  }
+  const { videoRef, error, isLoading, isReady, retry } = useCamera(facingMode);
+  const modelViewerRef = useRef<ModelViewerElement>(null);
 
   const overlayConfig: OverlayConfig = {
     title: organization.name,
@@ -35,6 +31,29 @@ export function ModelARViewer({ organization, model, experienceName, whiteLabel 
     watermark: whiteLabel ? organization.name : t('ar.poweredBy'),
     showGrid: false,
   };
+
+  const {
+    handleCapture,
+    capturing,
+    flash,
+    captureMsg,
+    captureResult,
+    clearCaptureResult,
+  } = useARCapture({
+    videoRef,
+    facingMode,
+    overlayConfig,
+    modelViewerRef,
+    isReady: Boolean(model) && isReady,
+  });
+
+  if (!model) {
+    return (
+      <div className="min-h-app flex items-center justify-center p-4" style={{ background: 'var(--color-bg)' }}>
+        <p className="text-secondary">{t('ar.modelNotFound')}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="ar-camera-root safe-top">
@@ -46,7 +65,7 @@ export function ModelARViewer({ organization, model, experienceName, whiteLabel 
             <AlertCircle className="w-10 h-10 mb-4" style={{ color: '#ff3b30' }} />
             <p className="text-lg font-bold mb-2">{t('ar.noCamera')}</p>
             <p className="text-secondary text-sm mb-6">{t('ar.noCameraDesc')}</p>
-            <button onClick={retry} className="btn btn-primary w-full">{t('common.retry')}</button>
+            <button type="button" onClick={retry} className="btn btn-primary w-full">{t('common.retry')}</button>
           </div>
         </div>
       )}
@@ -59,29 +78,32 @@ export function ModelARViewer({ organization, model, experienceName, whiteLabel 
         className={`ar-camera-video ${facingMode === 'user' ? 'ar-camera-mirror' : ''}`}
       />
 
-      <ARModelStage fileUrl={model.fileUrl} name={model.name} />
+      {flash && <div className="ar-capture-flash" aria-hidden="true" />}
+
+      <ARModelStage
+        ref={modelViewerRef}
+        fileUrl={model.fileUrl}
+        name={model.name}
+      />
 
       <OverlayFrame config={overlayConfig} showCenterGuide={false} />
 
-      <footer className="ar-camera-dock safe-x">
-        <div className="camera-dock max-w-sm mx-auto px-4 py-3 flex items-center justify-between">
-          <button
-            onClick={() => setFacingMode((p) => (p === 'user' ? 'environment' : 'user'))}
-            className="icon-btn rounded-full glass-thick"
-            aria-label={t('ar.switchCamera')}
-          >
-            <SwitchCamera className="w-6 h-6" />
-          </button>
-
-          <p className="text-xs text-center text-secondary max-w-[10rem] leading-tight">
-            {t('ar.viewInSpace')}
-          </p>
-
-          <div className="w-11 h-11 flex items-center justify-center" aria-hidden="true">
-            <Box className="w-5 h-5 opacity-40" />
-          </div>
+      {captureMsg && (
+        <div className="ar-camera-toast toast-glass text-sm px-5 py-2.5 font-medium max-w-[90vw] text-center">
+          {captureMsg}
         </div>
-      </footer>
+      )}
+
+      {captureResult && (
+        <CaptureSheet result={captureResult} onClose={clearCaptureResult} />
+      )}
+
+      <ARCameraDock
+        onSwitchCamera={() => setFacingMode((p) => (p === 'user' ? 'environment' : 'user'))}
+        onCapture={handleCapture}
+        capturing={capturing}
+        captureDisabled={!isReady}
+      />
     </div>
   );
 }

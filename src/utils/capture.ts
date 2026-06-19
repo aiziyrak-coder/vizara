@@ -131,7 +131,8 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
 export async function captureFromVideo(
   video: HTMLVideoElement,
   facingMode: FacingMode,
-  config?: OverlayConfig
+  config?: OverlayConfig,
+  modelViewer?: HTMLElement & { toDataURL?: (type?: string, quality?: number) => Promise<string> }
 ): Promise<CaptureResult> {
   await waitForVideoFrame(video);
 
@@ -152,6 +153,16 @@ export async function captureFromVideo(
     ctx.scale(-1, 1);
   }
 
+  if (modelViewer?.toDataURL) {
+    try {
+      const modelDataUrl = await modelViewer.toDataURL('image/png');
+      const modelImg = await loadImage(modelDataUrl);
+      ctx.drawImage(modelImg, 0, 0, canvas.width, canvas.height);
+    } catch {
+      // Model layer optional — still save camera frame
+    }
+  }
+
   drawOverlay(ctx, canvas.width, canvas.height, config);
 
   const blob = await canvasToBlob(canvas);
@@ -159,6 +170,15 @@ export async function captureFromVideo(
   const filename = `vizara-photo-${Date.now()}.jpg`;
 
   return { blob, dataUrl, filename };
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Model qatlamini yuklab bo\'lmadi'));
+    img.src = src;
+  });
 }
 
 function isShareCancelled(err: unknown): boolean {
