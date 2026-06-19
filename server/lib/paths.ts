@@ -4,6 +4,7 @@ export const ROOT_DIR = process.cwd();
 export const UPLOADS_DIR = path.join(ROOT_DIR, 'uploads');
 export const MODELS_DIR = path.join(UPLOADS_DIR, 'models');
 export const PANORAMAS_DIR = path.join(UPLOADS_DIR, 'panoramas');
+export const TOUR_MEDIA_DIR = path.join(UPLOADS_DIR, 'tour-media');
 export const QR_DIR = path.join(UPLOADS_DIR, 'qr');
 export const DIST_DIR = path.join(ROOT_DIR, 'dist');
 

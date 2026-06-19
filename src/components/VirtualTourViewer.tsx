@@ -1,25 +1,23 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Compass, MapPin } from 'lucide-react';
-import { buildPannellumConfig, usePannellum } from '../hooks/usePannellum';
+import { usePannellum } from '../hooks/usePannellum';
+import { buildTourViewerConfig, findHotspotById } from '../lib/tour-pannellum';
 import { resolveUploadUrl } from '../lib/assets';
+import { parseTourSettings, type TourHotspotPayload } from '../../shared/tour-types';
 import { useI18n } from '../lib/i18n-context';
 import { Preloader } from './Preloader';
+import { TourHotspotModal } from './tour/TourHotspotModal';
 
 interface TourScene {
   id: string;
   name: string;
+  description?: string | null;
   panoramaUrl: string;
   pitch: number;
   yaw: number;
   hfov: number;
-  hotspots: {
-    id: string;
-    type: string;
-    pitch: number;
-    yaw: number;
-    text?: string | null;
-    targetSceneId?: string | null;
-  }[];
+  ambientAudioUrl?: string | null;
+  hotspots: TourHotspotPayload[];
 }
 
 interface PannellumViewer {
@@ -32,7 +30,7 @@ interface PannellumViewer {
 }
 
 interface VirtualTourViewerProps {
-  tour: { name: string; description?: string | null; startSceneId: string };
+  tour: { name: string; description?: string | null; startSceneId: string; settings?: string | null };
   organization: { name: string; brandColor: string; website?: string };
   scenes: TourScene[];
   whiteLabel?: boolean;
@@ -43,10 +41,42 @@ export function VirtualTourViewer({ tour, organization, scenes, whiteLabel }: Vi
   const { ready, error } = usePannellum();
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<PannellumViewer | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const hotspotClickRef = useRef<(id: string) => void>(() => {});
   const [currentSceneId, setCurrentSceneId] = useState(tour.startSceneId);
   const [gyroOn, setGyroOn] = useState(false);
   const [panoramaError, setPanoramaError] = useState('');
+  const [activeHotspot, setActiveHotspot] = useState<TourHotspotPayload | null>(null);
+  const settings = parseTourSettings(tour.settings);
   const brand = organization.brandColor || '#6366f1';
+
+  hotspotClickRef.current = (hotspotId: string) => {
+    const hotspot = findHotspotById(scenes, hotspotId);
+    if (!hotspot) return;
+    if (hotspot.type === 'link' && hotspot.linkUrl && !hotspot.body && !hotspot.mediaUrl) {
+      window.open(hotspot.linkUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    setActiveHotspot(hotspot);
+  };
+
+  const playAmbient = useCallback((sceneId: string) => {
+    const scene = scenes.find((s) => s.id === sceneId);
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (!scene?.ambientAudioUrl) {
+      audio.pause();
+      audio.removeAttribute('src');
+      return;
+    }
+    const url = resolveUploadUrl(scene.ambientAudioUrl);
+    if (audio.src !== url) {
+      audio.src = url;
+    }
+    audio.loop = true;
+    audio.volume = 0.35;
+    audio.play().catch(() => {});
+  }, [scenes]);
 
   const initViewer = useCallback(() => {
     if (!containerRef.current || scenes.length === 0) return;
@@ -59,7 +89,7 @@ export function VirtualTourViewer({ tour, organization, scenes, whiteLabel }: Vi
 
     viewerRef.current?.destroy?.();
 
-    const config = buildPannellumConfig(
+    const config = buildTourViewerConfig(
       scenes.map((s) => ({
         id: s.id,
         title: s.name,
@@ -67,31 +97,30 @@ export function VirtualTourViewer({ tour, organization, scenes, whiteLabel }: Vi
         pitch: s.pitch,
         yaw: s.yaw,
         hfov: s.hfov,
-        hotSpots: s.hotspots.map((h) => ({
-          pitch: h.pitch,
-          yaw: h.yaw,
-          type: h.type,
-          text: h.text,
-          sceneId: h.targetSceneId || undefined,
-        })),
+        hotSpots: s.hotspots,
       })),
-      tour.startSceneId
+      tour.startSceneId,
+      (id) => hotspotClickRef.current(id)
     );
 
     const viewer = pannellum.viewer(containerRef.current, config);
     viewerRef.current = viewer;
     setCurrentSceneId(tour.startSceneId);
     setPanoramaError('');
+    playAmbient(tour.startSceneId);
 
     viewer.on?.('scenechange', () => {
       const id = viewer.getScene?.();
-      if (id) setCurrentSceneId(id);
+      if (id) {
+        setCurrentSceneId(id);
+        playAmbient(id);
+      }
     });
 
     viewer.on?.('error', (msg: unknown) => {
       setPanoramaError(typeof msg === 'string' ? msg : t('tours.panoramaError'));
     });
-  }, [scenes, tour.startSceneId, t]);
+  }, [scenes, tour.startSceneId, t, playAmbient]);
 
   useEffect(() => {
     if (!ready) return;
@@ -99,6 +128,7 @@ export function VirtualTourViewer({ tour, organization, scenes, whiteLabel }: Vi
     return () => {
       viewerRef.current?.destroy?.();
       viewerRef.current = null;
+      audioRef.current?.pause();
     };
   }, [ready, initViewer]);
 
@@ -132,6 +162,8 @@ export function VirtualTourViewer({ tour, organization, scenes, whiteLabel }: Vi
     }
   };
 
+  const currentScene = scenes.find((s) => s.id === currentSceneId);
+
   if (error) {
     return (
       <div className="min-h-app flex items-center justify-center p-4" style={{ background: '#0f172a' }}>
@@ -150,6 +182,7 @@ export function VirtualTourViewer({ tour, organization, scenes, whiteLabel }: Vi
 
   return (
     <div className="tour-viewer-root">
+      <audio ref={audioRef} className="hidden" preload="none" />
       <div ref={containerRef} className="tour-pannellum" />
 
       <header className="tour-viewer-header safe-top safe-x">
@@ -159,17 +192,21 @@ export function VirtualTourViewer({ tour, organization, scenes, whiteLabel }: Vi
             <div className="min-w-0">
               <p className="tour-viewer-org truncate">{organization.name}</p>
               <p className="tour-viewer-title truncate">{tour.name}</p>
+              {currentScene?.description && (
+                <p className="tour-viewer-scene-desc truncate">{currentScene.description}</p>
+              )}
             </div>
           </div>
-          <button
-            type="button"
-            onClick={toggleGyro}
-            className={`tour-gyro-btn ${gyroOn ? 'tour-gyro-btn--on' : ''}`}
-            aria-label={gyroOn ? t('tours.gyroOff') : t('tours.gyroOn')}
-            title={gyroOn ? t('tours.gyroOff') : t('tours.gyroOn')}
-          >
-            <Compass className="w-5 h-5" />
-          </button>
+          {settings.showGyro !== false && (
+            <button
+              type="button"
+              onClick={toggleGyro}
+              className={`tour-gyro-btn ${gyroOn ? 'tour-gyro-btn--on' : ''}`}
+              aria-label={gyroOn ? t('tours.gyroOff') : t('tours.gyroOn')}
+            >
+              <Compass className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </header>
 
@@ -179,7 +216,7 @@ export function VirtualTourViewer({ tour, organization, scenes, whiteLabel }: Vi
         </div>
       )}
 
-      {scenes.length > 1 && (
+      {settings.showSceneList !== false && scenes.length > 1 && (
         <nav className="tour-scene-nav safe-x" aria-label={t('tours.scenes')}>
           {scenes.map((scene) => (
             <button
@@ -202,6 +239,10 @@ export function VirtualTourViewer({ tour, organization, scenes, whiteLabel }: Vi
           <p className="tour-viewer-website truncate">{organization.website}</p>
         )}
       </footer>
+
+      {activeHotspot && (
+        <TourHotspotModal hotspot={activeHotspot} onClose={() => setActiveHotspot(null)} />
+      )}
     </div>
   );
 }

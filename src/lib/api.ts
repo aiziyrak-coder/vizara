@@ -161,7 +161,13 @@ export const api = {
   getTour: (orgId: string, tourId: string) =>
     request<TourDetail & { tourUrl: string }>(`/tours/${orgId}/${tourId}`),
 
-  updateTour: (orgId: string, tourId: string, data: Partial<{ name: string; description: string; startSceneId: string | null; isActive: boolean }>) =>
+  updateTour: (orgId: string, tourId: string, data: Partial<{
+    name: string;
+    description: string;
+    startSceneId: string | null;
+    isActive: boolean;
+    settings: Record<string, unknown> | string | null;
+  }>) =>
     request<TourDetail>(`/tours/${orgId}/${tourId}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -191,14 +197,53 @@ export const api = {
       method: 'DELETE',
     }),
 
+  updateTourScene: (
+    orgId: string,
+    tourId: string,
+    sceneId: string,
+    data: Partial<{
+      name: string;
+      description: string | null;
+      pitch: number;
+      yaw: number;
+      hfov: number;
+      ambientAudioUrl: string | null;
+    }>
+  ) =>
+    request<TourScene>(`/tours/${orgId}/${tourId}/scenes/${sceneId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  uploadTourMedia: (orgId: string, tourId: string, file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return request<{ mediaUrl: string; mediaType: string }>(`/tours/${orgId}/${tourId}/media`, {
+      method: 'POST',
+      body: form,
+      headers: {},
+    });
+  },
+
   createTourHotspot: (
     orgId: string,
     tourId: string,
     sceneId: string,
-    data: { type?: string; pitch?: number; yaw?: number; text?: string; targetSceneId?: string }
+    data: Partial<TourHotspotInput>
   ) =>
     request<TourHotspot>(`/tours/${orgId}/${tourId}/scenes/${sceneId}/hotspots`, {
       method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateTourHotspot: (
+    orgId: string,
+    tourId: string,
+    hotspotId: string,
+    data: Partial<TourHotspotInput>
+  ) =>
+    request<TourHotspot>(`/tours/${orgId}/${tourId}/hotspots/${hotspotId}`, {
+      method: 'PATCH',
       body: JSON.stringify(data),
     }),
 
@@ -353,18 +398,34 @@ export interface VirtualTour {
   coverUrl?: string | null;
   qrCodeUrl?: string | null;
   isActive: boolean;
+  settings?: string | null;
   createdAt: string;
   tourUrl?: string;
   _count?: { scenes: number };
 }
 
+export interface TourHotspotInput {
+  type: string;
+  pitch: number;
+  yaw: number;
+  title?: string;
+  text?: string;
+  body?: string;
+  mediaUrl?: string;
+  mediaType?: string;
+  linkUrl?: string;
+  targetSceneId?: string;
+}
+
 export interface TourScene {
   id: string;
   name: string;
+  description?: string | null;
   panoramaUrl: string;
   pitch: number;
   yaw: number;
   hfov: number;
+  ambientAudioUrl?: string | null;
   order: number;
   tourId: string;
   hotspots: TourHotspot[];
@@ -373,13 +434,20 @@ export interface TourScene {
 
 export interface TourHotspot {
   id: string;
-  sceneId: string;
+  sceneId?: string;
   type: string;
   pitch: number;
   yaw: number;
+  title?: string | null;
   text?: string | null;
+  body?: string | null;
+  mediaUrl?: string | null;
+  mediaType?: string | null;
+  linkUrl?: string | null;
+  icon?: string | null;
+  order?: number;
   targetSceneId?: string | null;
-  createdAt: string;
+  createdAt?: string;
 }
 
 export interface TourDetail extends VirtualTour {
@@ -392,6 +460,7 @@ export interface PublicTourData {
     name: string;
     description?: string | null;
     startSceneId: string;
+    settings?: string | null;
   };
   organization: {
     name: string;

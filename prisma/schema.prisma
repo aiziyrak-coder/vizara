@@ -71,6 +71,7 @@ model VirtualTour {
   coverUrl       String?
   qrCodeUrl      String?
   isActive       Boolean      @default(true)
+  settings       String?
   createdAt      DateTime     @default(now())
   scenes         TourScene[]
 
@@ -78,27 +79,36 @@ model VirtualTour {
 }
 
 model TourScene {
-  id          String        @id @default(cuid())
-  name        String
-  panoramaUrl String
-  pitch       Float         @default(0)
-  yaw         Float         @default(0)
-  hfov        Float         @default(100)
-  order       Int           @default(0)
-  tourId      String
-  tour        VirtualTour   @relation(fields: [tourId], references: [id], onDelete: Cascade)
-  hotspots    TourHotspot[]
-  createdAt   DateTime      @default(now())
+  id              String        @id @default(cuid())
+  name            String
+  description     String?
+  panoramaUrl     String
+  pitch           Float         @default(0)
+  yaw             Float         @default(0)
+  hfov            Float         @default(100)
+  ambientAudioUrl String?
+  order           Int           @default(0)
+  tourId          String
+  tour            VirtualTour   @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  hotspots        TourHotspot[]
+  createdAt       DateTime      @default(now())
 }
 
 model TourHotspot {
   id            String    @id @default(cuid())
   sceneId       String
   scene         TourScene @relation(fields: [sceneId], references: [id], onDelete: Cascade)
-  type          String    @default("scene")
+  type          String    @default("info")
   pitch         Float
   yaw           Float
+  title         String?
   text          String?
+  body          String?
+  mediaUrl      String?
+  mediaType     String?
+  linkUrl       String?
+  icon          String?
+  order         Int       @default(0)
   targetSceneId String?
   createdAt     DateTime  @default(now())
 }

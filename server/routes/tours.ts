@@ -12,7 +12,16 @@ import {
 } from '../middleware/subscription.js';
 import { getOrgPlanForProduct } from '../lib/plans.js';
 import { getAppUrl } from '../lib/app-url.js';
-import { PANORAMAS_DIR, QR_DIR, MAX_UPLOAD_BYTES } from '../lib/paths.js';
+import { PANORAMAS_DIR, TOUR_MEDIA_DIR, QR_DIR, MAX_UPLOAD_BYTES } from '../lib/paths.js';
+import {
+  cleanupTourMedia,
+  detectMediaType,
+  isAllowedTourMedia,
+  normalizeHotspotType,
+  resolveTourMediaPath,
+  serializeHotspot,
+  serializeScene,
+} from '../lib/tour-helpers.js';
 import { publicArRateLimit } from '../middleware/rate-limit.js';
 import { clampString } from '../lib/validate.js';
 import { isSafeSlug, resolveQrFilePath } from '../lib/file-validation.js';
@@ -40,6 +49,27 @@ const panoUpload = multer({
       cb(null, true);
     } else {
       cb(new Error('Faqat JPG, PNG yoki WebP panorama qabul qilinadi'));
+    }
+  },
+});
+
+const mediaStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, TOUR_MEDIA_DIR),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const safeExt = isAllowedTourMedia(file.originalname) ? ext : '.bin';
+    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${safeExt}`);
+  },
+});
+
+const mediaUpload = multer({
+  storage: mediaStorage,
+  limits: { fileSize: MAX_UPLOAD_BYTES },
+  fileFilter: (_req, file, cb) => {
+    if (isAllowedTourMedia(file.originalname)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Rasm, video, audio yoki GIF format qabul qilinadi'));
     }
   },
 });
@@ -201,7 +231,13 @@ router.patch('/:orgId/:tourId', requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
-    const data: { name?: string; description?: string | null; startSceneId?: string | null; isActive?: boolean } = {};
+    const data: {
+      name?: string;
+      description?: string | null;
+      startSceneId?: string | null;
+      isActive?: boolean;
+      settings?: string | null;
+    } = {};
 
     if (req.body.name !== undefined) {
       const name = clampString(String(req.body.name), 120);
@@ -218,6 +254,16 @@ router.patch('/:orgId/:tourId', requireAuth, async (req: AuthRequest, res) => {
 
     if (req.body.isActive !== undefined) {
       data.isActive = Boolean(req.body.isActive);
+    }
+
+    if (req.body.settings !== undefined) {
+      if (req.body.settings === null || req.body.settings === '') {
+        data.settings = null;
+      } else if (typeof req.body.settings === 'string') {
+        data.settings = req.body.settings;
+      } else {
+        data.settings = JSON.stringify(req.body.settings);
+      }
     }
 
     if (req.body.startSceneId !== undefined) {
@@ -305,6 +351,10 @@ router.delete('/:orgId/:tourId', requireAuth, async (req: AuthRequest, res) => {
     for (const scene of tour.scenes) {
       const panoPath = resolvePanoramaPath(scene.panoramaUrl);
       if (panoPath && fs.existsSync(panoPath)) fs.unlinkSync(panoPath);
+      for (const h of scene.hotspots) {
+        cleanupTourMedia(h.mediaUrl);
+      }
+      cleanupTourMedia(scene.ambientAudioUrl);
     }
 
     await prisma.virtualTour.delete({ where: { id: tour.id } });
@@ -394,12 +444,24 @@ router.patch('/:orgId/:tourId/scenes/:sceneId', requireAuth, async (req: AuthReq
       return;
     }
 
-    const data: { name?: string; pitch?: number; yaw?: number; hfov?: number; order?: number } = {};
+    const data: {
+      name?: string;
+      description?: string | null;
+      pitch?: number;
+      yaw?: number;
+      hfov?: number;
+      order?: number;
+      ambientAudioUrl?: string | null;
+    } = {};
     if (req.body.name !== undefined) data.name = clampString(String(req.body.name), 120) || scene.name;
+    if (req.body.description !== undefined) {
+      data.description = req.body.description ? clampString(String(req.body.description), 2000) : null;
+    }
     if (req.body.pitch !== undefined) data.pitch = Number(req.body.pitch);
     if (req.body.yaw !== undefined) data.yaw = Number(req.body.yaw);
     if (req.body.hfov !== undefined) data.hfov = Number(req.body.hfov);
     if (req.body.order !== undefined) data.order = Number(req.body.order);
+    if (req.body.ambientAudioUrl !== undefined) data.ambientAudioUrl = req.body.ambientAudioUrl || null;
 
     const updated = await prisma.tourScene.update({
       where: { id: scene.id },
@@ -440,6 +502,10 @@ router.delete('/:orgId/:tourId/scenes/:sceneId', requireAuth, async (req: AuthRe
     const panoPath = resolvePanoramaPath(scene.panoramaUrl);
     if (panoPath && fs.existsSync(panoPath)) fs.unlinkSync(panoPath);
 
+    const hotspots = await prisma.tourHotspot.findMany({ where: { sceneId: scene.id } });
+    for (const h of hotspots) cleanupTourMedia(h.mediaUrl);
+    cleanupTourMedia(scene.ambientAudioUrl);
+
     await prisma.tourScene.delete({ where: { id: scene.id } });
 
     if (tour.startSceneId === scene.id) {
@@ -462,6 +528,52 @@ router.delete('/:orgId/:tourId/scenes/:sceneId', requireAuth, async (req: AuthRe
   }
 });
 
+router.post('/:orgId/:tourId/media', requireAuth, uploadRateLimit, (req: AuthRequest, res, next) => {
+  mediaUpload.single('file')(req, res, (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+        res.status(400).json({ error: 'Fayl hajmi juda katta' });
+        return;
+      }
+      res.status(400).json({ error: err.message || 'Media yuklashda xatolik' });
+      return;
+    }
+    next();
+  });
+}, async (req: AuthRequest, res) => {
+  let uploadedPath: string | null = req.file?.path ?? null;
+  try {
+    const org = await getOrgForUser(req.params.orgId, req.userId!);
+    if (!org) {
+      cleanupFile(uploadedPath);
+      res.status(404).json({ error: 'Tashkilot topilmadi' });
+      return;
+    }
+
+    const tour = await prisma.virtualTour.findFirst({
+      where: { id: req.params.tourId, organizationId: org.id },
+    });
+    if (!tour) {
+      cleanupFile(uploadedPath);
+      res.status(404).json({ error: 'Virtual tur topilmadi' });
+      return;
+    }
+
+    if (!req.file) {
+      res.status(400).json({ error: 'Media fayli yuklanishi shart' });
+      return;
+    }
+
+    const mediaUrl = `/uploads/tour-media/${req.file.filename}`;
+    const mediaType = detectMediaType(req.file.originalname, req.file.mimetype);
+
+    res.status(201).json({ mediaUrl, mediaType });
+  } catch {
+    cleanupFile(uploadedPath);
+    res.status(500).json({ error: 'Media yuklashda xatolik' });
+  }
+});
+
 router.post('/:orgId/:tourId/scenes/:sceneId/hotspots', requireAuth, async (req: AuthRequest, res) => {
   try {
     const org = await getOrgForUser(req.params.orgId, req.userId!);
@@ -472,20 +584,31 @@ router.post('/:orgId/:tourId/scenes/:sceneId/hotspots', requireAuth, async (req:
 
     const scene = await prisma.tourScene.findFirst({
       where: { id: req.params.sceneId, tour: { id: req.params.tourId, organizationId: org.id } },
+      include: { _count: { select: { hotspots: true } } },
     });
     if (!scene) {
       res.status(404).json({ error: 'Sahna topilmadi' });
       return;
     }
 
-    const type = String(req.body.type || 'scene');
+    const type = normalizeHotspotType(String(req.body.type || 'info'));
     const pitch = Number(req.body.pitch ?? 0);
     const yaw = Number(req.body.yaw ?? 0);
+    const title = req.body.title ? clampString(String(req.body.title), 120) : null;
     const text = req.body.text ? clampString(String(req.body.text), 200) : null;
+    const body = req.body.body ? clampString(String(req.body.body), 4000) : null;
+    const mediaUrl = req.body.mediaUrl ? String(req.body.mediaUrl) : null;
+    const mediaType = req.body.mediaType ? String(req.body.mediaType) : null;
+    const linkUrl = req.body.linkUrl ? clampString(String(req.body.linkUrl), 500) : null;
     const targetSceneId = req.body.targetSceneId as string | undefined;
 
     if (type === 'scene' && !targetSceneId) {
       res.status(400).json({ error: 'Manzil sahna tanlanishi shart' });
+      return;
+    }
+
+    if (type === 'link' && !linkUrl && !mediaUrl) {
+      res.status(400).json({ error: 'Havola yoki media kerak' });
       return;
     }
 
@@ -499,20 +622,88 @@ router.post('/:orgId/:tourId/scenes/:sceneId/hotspots', requireAuth, async (req:
       }
     }
 
+    if (mediaUrl && !mediaUrl.startsWith('/uploads/tour-media/')) {
+      res.status(400).json({ error: 'Noto\'g\'ri media manzili' });
+      return;
+    }
+
     const hotspot = await prisma.tourHotspot.create({
       data: {
         sceneId: scene.id,
         type,
         pitch,
         yaw,
+        title,
         text,
-        targetSceneId: targetSceneId || null,
+        body,
+        mediaUrl,
+        mediaType,
+        linkUrl,
+        targetSceneId: type === 'scene' ? (targetSceneId || null) : null,
+        order: scene._count.hotspots,
       },
     });
 
-    res.status(201).json(hotspot);
+    res.status(201).json(serializeHotspot(hotspot));
   } catch {
     res.status(500).json({ error: 'Hotspot yaratishda xatolik' });
+  }
+});
+
+router.patch('/:orgId/:tourId/hotspots/:hotspotId', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const org = await getOrgForUser(req.params.orgId, req.userId!);
+    if (!org) {
+      res.status(404).json({ error: 'Tashkilot topilmadi' });
+      return;
+    }
+
+    const hotspot = await prisma.tourHotspot.findFirst({
+      where: {
+        id: req.params.hotspotId,
+        scene: { tour: { id: req.params.tourId, organizationId: org.id } },
+      },
+    });
+    if (!hotspot) {
+      res.status(404).json({ error: 'Hotspot topilmadi' });
+      return;
+    }
+
+    const data: Record<string, unknown> = {};
+    if (req.body.type !== undefined) data.type = normalizeHotspotType(String(req.body.type));
+    if (req.body.pitch !== undefined) data.pitch = Number(req.body.pitch);
+    if (req.body.yaw !== undefined) data.yaw = Number(req.body.yaw);
+    if (req.body.title !== undefined) data.title = req.body.title ? clampString(String(req.body.title), 120) : null;
+    if (req.body.text !== undefined) data.text = req.body.text ? clampString(String(req.body.text), 200) : null;
+    if (req.body.body !== undefined) data.body = req.body.body ? clampString(String(req.body.body), 4000) : null;
+    if (req.body.linkUrl !== undefined) data.linkUrl = req.body.linkUrl ? clampString(String(req.body.linkUrl), 500) : null;
+    if (req.body.order !== undefined) data.order = Number(req.body.order);
+    if (req.body.targetSceneId !== undefined) data.targetSceneId = req.body.targetSceneId || null;
+
+    if (req.body.mediaUrl !== undefined) {
+      const nextUrl = req.body.mediaUrl || null;
+      if (nextUrl && !String(nextUrl).startsWith('/uploads/tour-media/')) {
+        res.status(400).json({ error: 'Noto\'g\'ri media manzili' });
+        return;
+      }
+      if (hotspot.mediaUrl && hotspot.mediaUrl !== nextUrl) {
+        cleanupTourMedia(hotspot.mediaUrl);
+      }
+      data.mediaUrl = nextUrl;
+    }
+
+    if (req.body.mediaType !== undefined) {
+      data.mediaType = req.body.mediaType || null;
+    }
+
+    const updated = await prisma.tourHotspot.update({
+      where: { id: hotspot.id },
+      data,
+    });
+
+    res.json(serializeHotspot(updated));
+  } catch {
+    res.status(500).json({ error: 'Hotspot yangilashda xatolik' });
   }
 });
 
@@ -535,6 +726,7 @@ router.delete('/:orgId/:tourId/hotspots/:hotspotId', requireAuth, async (req: Au
       return;
     }
 
+    cleanupTourMedia(hotspot.mediaUrl);
     await prisma.tourHotspot.delete({ where: { id: hotspot.id } });
     res.json({ success: true });
   } catch {
@@ -591,6 +783,7 @@ router.get('/public/:orgSlug/:tourSlug', publicArRateLimit, async (req, res) => 
         name: tour.name,
         description: tour.description,
         startSceneId,
+        settings: tour.settings,
       },
       organization: {
         name: org.name,
@@ -599,22 +792,7 @@ router.get('/public/:orgSlug/:tourSlug', publicArRateLimit, async (req, res) => 
         logoUrl: org.logoUrl,
         website: org.website,
       },
-      scenes: tour.scenes.map((scene) => ({
-        id: scene.id,
-        name: scene.name,
-        panoramaUrl: scene.panoramaUrl,
-        pitch: scene.pitch,
-        yaw: scene.yaw,
-        hfov: scene.hfov,
-        hotspots: scene.hotspots.map((h) => ({
-          id: h.id,
-          type: h.type,
-          pitch: h.pitch,
-          yaw: h.yaw,
-          text: h.text,
-          targetSceneId: h.targetSceneId,
-        })),
-      })),
+      scenes: tour.scenes.map(serializeScene),
       plan: { id: plan.id, name: plan.name, whiteLabel: plan.features.whiteLabel },
     });
   } catch {

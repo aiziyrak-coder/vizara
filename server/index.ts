@@ -13,7 +13,7 @@ import { validateStartupEnv } from './lib/validate.js';
 import { createCorsMiddleware } from './middleware/cors-config.js';
 import { connectDatabase, disconnectDatabase, pingDatabase } from './lib/prisma.js';
 import { logger } from './lib/logger.js';
-import { DIST_DIR, MODELS_DIR, PANORAMAS_DIR, QR_DIR, UPLOADS_DIR } from './lib/paths.js';
+import { DIST_DIR, MODELS_DIR, PANORAMAS_DIR, TOUR_MEDIA_DIR, QR_DIR, UPLOADS_DIR } from './lib/paths.js';
 import { globalApiRateLimit } from './middleware/rate-limit.js';
 import { ensureUploadsWritable } from './lib/file-validation.js';
 
@@ -30,7 +30,7 @@ if (isProd) {
   app.disable('x-powered-by');
 }
 
-[UPLOADS_DIR, MODELS_DIR, PANORAMAS_DIR, QR_DIR].forEach((dir) => {
+[UPLOADS_DIR, MODELS_DIR, PANORAMAS_DIR, TOUR_MEDIA_DIR, QR_DIR].forEach((dir) => {
   fs.mkdirSync(dir, { recursive: true });
 });
 
